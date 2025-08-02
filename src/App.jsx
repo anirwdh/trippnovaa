@@ -1,10 +1,22 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import UserHome from './User/UserHome';
 import UserExplore from './User/UserExplore';
+import UserdetailBooking from './User/UserdetailBooking';
 import AgencyHome from './Agency/AgencyHome';
 import AgencyRegistration from './Agency/AgencyRegistration';
 import AgencyLandingPage from './Agency/AgencyLandingPage';
 import AgencyPackages from './Agency/AgencyPackages';
+import Adminlanding from './Admin/Adminlanding';
+import UserManagement from './Admin/UserManagement';
+import BookingManagement from './Admin/BookingManagement';
+import Inquiries from './Admin/Inquiries';
+import BlogUpload from './Admin/BlogUpload';
+import Blog from './Components/Blog';
+import About from './Components/About';
+import Contact from './Components/Contact';
+import Privacy from './Components/Privacy';
+import Security from './Components/Security';
+import Terms from './Components/Terms';
 
 function App() {
   return (
@@ -12,10 +24,24 @@ function App() {
       <Routes>
         <Route path="/" element={<UserHome />} />
         <Route path="/userexplore" element={<UserExplore />} />
+        <Route path="/userexplore" element={<UserExplore />} />
+        <Route path="/userdetailbooking" element={<UserdetailBooking />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/security" element={<Security />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/agency" element={<AgencyHome />} />
         <Route path="/AgencyRegistration" element={<AgencyRegistration />} />
         <Route path="/AgencyLandingPage" element={<AgencyLandingPage />} />
         <Route path="/AgencyPackages" element={<AgencyPackages />} />
+        <Route path="/loginadmin" element={<Adminlanding />} />
+        <Route path="/adminlanding" element={<Adminlanding />} />
+        <Route path="/usermanagement" element={<UserManagement />} />
+        <Route path="/bookingmanagement" element={<BookingManagement />} />
+        <Route path="/inquiries" element={<Inquiries />} />
+        <Route path="/blogupload" element={<BlogUpload />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
       </Routes>
     </BrowserRouter>
   );

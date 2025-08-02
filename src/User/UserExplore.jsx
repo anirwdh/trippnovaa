@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../App.css';
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
@@ -18,6 +19,19 @@ import jawaiImg from '../assets/Images/jawai.jpg';
 import addImg from '../assets/Images/add.jpg';
 
 function UserExplore() {
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('Aniruddh');
+
+  const handleLoginSuccess = (loginState = true) => {
+    if (loginState === false) {
+      // Logout
+      setIsLoggedIn(false);
+    } else {
+      // Login
+      setIsLoggedIn(true);
+    }
+  };
 
   const travelAgencies = [
     {
@@ -106,12 +120,19 @@ function UserExplore() {
     }
   ];
 
+  const handleCardClick = () => {
+    navigate('/userdetailbooking');
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header Component */}
       <Header 
         onLoginClick={() => {}} // Empty function since UserExplore doesn't have login modals
         onSignupClick={() => {}} // Empty function since UserExplore doesn't have signup modals
+        isLoggedIn={isLoggedIn}
+        userName={userName}
+        onLoginSuccess={handleLoginSuccess}
       />
 
       {/* Breadcrumbs */}
@@ -148,7 +169,11 @@ function UserExplore() {
       <section className="px-4 md:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {travelAgencies.map((agency, index) => (
-            <div key={index} className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+            <div 
+              key={index} 
+              className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={handleCardClick}
+            >
               <div className="relative">
                 <img 
                   src={agency.image} 

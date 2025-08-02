@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-function Login({ isOpen, onClose, onOpenSignup }) {
+function Login({ isOpen, onClose, onOpenSignup, onLoginSuccess }) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('+91');
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
@@ -93,7 +93,15 @@ function Login({ isOpen, onClose, onOpenSignup }) {
                 </div>
               </div>
               
-              <button className="w-full bg-red-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-600 transition-colors">
+              <button 
+                type="button"
+                className="w-full bg-red-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-600 transition-colors"
+                onClick={() => {
+                  if (onLoginSuccess) {
+                    onLoginSuccess();
+                  }
+                }}
+              >
                 Send One Time Password
               </button>
             </div>
@@ -109,7 +117,15 @@ function Login({ isOpen, onClose, onOpenSignup }) {
             </div>
 
             {/* Email Login */}
-            <button className="w-full border border-gray-300 bg-white text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+            <button 
+              type="button"
+              className="w-full border border-gray-300 bg-white text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+              onClick={() => {
+                if (onLoginSuccess) {
+                  onLoginSuccess();
+                }
+              }}
+            >
               <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
@@ -117,8 +133,12 @@ function Login({ isOpen, onClose, onOpenSignup }) {
             </button>
 
             {/* Google Sign-in */}
-            <div className="border border-gray-300 rounded-lg p-4 bg-white">
-              <div className="flex items-center justify-between">
+            <div className="border border-gray-300 rounded-lg p-4 bg-white cursor-pointer hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between" onClick={() => {
+                if (onLoginSuccess) {
+                  onLoginSuccess();
+                }
+              }}>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                     A
