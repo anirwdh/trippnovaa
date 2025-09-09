@@ -372,7 +372,7 @@ function Home() {
           {/* Remo Logo */}
           <div className="flex justify-center mb-4 sm:mb-6 md:mb-8">
             <img 
-              src="/src/assets/Images/sdsd.png" 
+                src="/sdsd.png" 
               alt="Remo Logo" 
               className="max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg h-auto pointer-events-none"
               style={{
