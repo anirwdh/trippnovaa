@@ -372,7 +372,7 @@ function Home() {
           {/* Remo Logo */}
           <div className="flex justify-center mb-4 sm:mb-6 md:mb-8">
             <img 
-                src="/sdsd.png" 
+              src="/sdsd.png" 
               alt="Remo Logo" 
               className="max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg h-auto pointer-events-none"
               style={{
@@ -527,7 +527,7 @@ function Home() {
         </div>
         <div
           ref={curatedRef}
-          className="overflow-hidden pb-2 px-2 xs:px-3 sm:px-4"
+          className="overflow-x-auto md:overflow-hidden pb-2 px-2 xs:px-3 sm:px-4 scrollbar-hide snap-x snap-mandatory"
         >
           <div
             className="flex gap-4 xs:gap-5 sm:gap-6 md:gap-8 flex-nowrap transition-transform duration-500 ease-in-out py-6"
@@ -536,7 +536,7 @@ function Home() {
             {organisedCards.map((card, idx) => (
               <div
                 key={card.title}
-                className="relative w-[190px] xs:w-[220px] sm:w-[240px] md:w-[240px] lg:w-[290px] h-[300px] xs:h-[340px] sm:h-[380px] md:h-[400px] lg:h-[420px] flex-shrink-0 select-none cursor-pointer rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:-translate-y-6 hover:z-30 transition-all duration-500 ease-out group"
+                className="relative w-[190px] xs:w-[220px] sm:w-[240px] md:w-[240px] lg:w-[290px] h-[300px] xs:h-[340px] sm:h-[380px] md:h-[400px] lg:h-[420px] flex-shrink-0 select-none cursor-pointer rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:-translate-y-6 hover:z-30 transition-all duration-500 ease-out group snap-start"
                 onClick={() => handleCardClick(card.title)}
               >
                 <img
