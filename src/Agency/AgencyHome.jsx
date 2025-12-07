@@ -34,7 +34,12 @@ function AgencyHome() {
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-8 py-4 sm:py-6 w-full">
-        <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-purple-700 mb-2 sm:mb-0">trippnova</span>
+        <span 
+          className="text-2xl sm:text-3xl font-extrabold tracking-tight text-purple-700 mb-2 sm:mb-0 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => navigate('/')}
+        >
+          trippnova
+        </span>
         <button className="px-4 sm:px-6 py-2 border border-gray-400 rounded-full text-gray-700 font-semibold hover:bg-gray-100 transition text-sm sm:text-base" onClick={() => navigate('/AgencyLandingPage')}>Login</button>
       </header>
       {/* Main Section */}

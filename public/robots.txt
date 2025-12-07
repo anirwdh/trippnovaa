@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://trippnova.com/sitemap.xml
+
+# Disallow admin and private areas only
+Disallow: /adminlanding
+Disallow: /usermanagement
+Disallow: /bookingmanagement
+Disallow: /inquiries
+Disallow: /blogupload
+Disallow: /loginadmin
+
+# Note: Public routes remain crawlable

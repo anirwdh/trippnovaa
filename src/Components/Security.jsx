@@ -1,11 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 
 function Security() {
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
-      <Header />
+      <Header onLogoClick={() => navigate('/')} />
       
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-green-600 to-emerald-700 text-white py-8 sm:py-12 md:py-16 mt-16 sm:mt-20">

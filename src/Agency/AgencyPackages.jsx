@@ -6,10 +6,11 @@ import keralaImg from '../assets/Images/kerala.jpg';
 import spitiImg from '../assets/Images/spiti.jpg';
 import himaImg from '../assets/Images/hima.jpg';
 import Footer from '../Components/Footer';
+import EditPackageModal from '../Components/EditPackageModal';
 
 const mockPackages = [
   {
-    id: 1,
+    id: '68b200e6c387b8e7fe8f2442', // Using the ID from the API
     name: 'Manali Adventure',
     budget: 12000,
     image: manaliImg,
@@ -35,9 +36,22 @@ const mockPackages = [
     drop: 'Chandigarh',
     inclusions: ['Hotel Stay', 'Meals', 'Sightseeing'],
     exclusions: ['Flights', 'Personal Expenses'],
+    // Additional fields for edit form
+    startDate: '2024-07-01',
+    endDate: '2024-07-05',
+    price: 12000,
+    tripType: 'Adventure',
+    departureLocation: 'Delhi Airport',
+    travelMode: 'Private transport',
+    maxGroupSize: 20,
+    minimumAge: 18,
+    languageSupport: ['English', 'Hindi'],
+    availableDates: ['2024-07-01', '2024-08-01'],
+    bookingDeadline: '2024-06-25',
+    discounts: ['EARLYBIRD10', 'GROUP5']
   },
   {
-    id: 2,
+    id: '68b200e6c387b8e7fe8f2443',
     name: 'Goa Beach Fun',
     budget: 15000,
     image: goaImg,
@@ -62,9 +76,23 @@ const mockPackages = [
     drop: 'Goa Airport',
     inclusions: ['Hotel Stay', 'Meals', 'Guide'],
     exclusions: ['Tips', 'Insurance'],
+    // Additional fields for edit form
+    startDate: '2024-08-10',
+    endDate: '2024-08-13',
+    price: 15000,
+    tripType: 'Beach',
+    departureLocation: 'Goa Airport',
+    travelMode: 'Flight, Car',
+    maxGroupSize: 15,
+    minimumAge: 16,
+    languageSupport: ['English', 'Portuguese'],
+    availableDates: ['2024-08-10', '2024-09-10'],
+    bookingDeadline: '2024-08-01',
+    discounts: ['SUMMER20', 'WEEKEND15']
   },
+  // ... existing packages with similar structure
   {
-    id: 3,
+    id: '68b200e6c387b8e7fe8f2444',
     name: 'Kashmir Paradise',
     budget: 18000,
     image: kashmirImg,
@@ -91,9 +119,22 @@ const mockPackages = [
     drop: 'Srinagar Airport',
     inclusions: ['Hotel Stay', 'Meals', 'Sightseeing'],
     exclusions: ['Flights', 'Personal Expenses'],
+    // Additional fields for edit form
+    startDate: '2024-09-15',
+    endDate: '2024-09-20',
+    price: 18000,
+    tripType: 'Adventure',
+    departureLocation: 'Srinagar Airport',
+    travelMode: 'Flight, Car',
+    maxGroupSize: 25,
+    minimumAge: 18,
+    languageSupport: ['English', 'Kashmiri'],
+    availableDates: ['2024-09-15', '2024-10-15'],
+    bookingDeadline: '2024-09-01',
+    discounts: ['AUTUMN25', 'GROUP10']
   },
   {
-    id: 4,
+    id: '68b200e6c387b8e7fe8f2445',
     name: 'Kerala Backwaters',
     budget: 16000,
     image: keralaImg,
@@ -118,9 +159,22 @@ const mockPackages = [
     drop: 'Kochi Airport',
     inclusions: ['Hotel Stay', 'Meals', 'Sightseeing'],
     exclusions: ['Flights', 'Personal Expenses'],
+    // Additional fields for edit form
+    startDate: '2024-10-01',
+    endDate: '2024-10-04',
+    price: 16000,
+    tripType: 'Nature',
+    departureLocation: 'Kochi Airport',
+    travelMode: 'Flight, Car',
+    maxGroupSize: 12,
+    minimumAge: 12,
+    languageSupport: ['English', 'Malayalam'],
+    availableDates: ['2024-10-01', '2024-11-01'],
+    bookingDeadline: '2024-09-20',
+    discounts: ['MONSOON30', 'FAMILY20']
   },
   {
-    id: 5,
+    id: '68b200e6c387b8e7fe8f2446',
     name: 'Spiti Valley Adventure',
     budget: 20000,
     image: spitiImg,
@@ -148,9 +202,22 @@ const mockPackages = [
     drop: 'Kaza Airport',
     inclusions: ['Hotel Stay', 'Meals', 'Sightseeing'],
     exclusions: ['Flights', 'Personal Expenses'],
+    // Additional fields for edit form
+    startDate: '2024-11-01',
+    endDate: '2024-11-07',
+    price: 20000,
+    tripType: 'Adventure',
+    departureLocation: 'Kaza Airport',
+    travelMode: 'Flight, Car',
+    maxGroupSize: 18,
+    minimumAge: 21,
+    languageSupport: ['English', 'Hindi'],
+    availableDates: ['2024-11-01', '2024-12-01'],
+    bookingDeadline: '2024-10-15',
+    discounts: ['WINTER35', 'ADVENTURE15']
   },
   {
-    id: 6,
+    id: '68b200e6c387b8e7fe8f2447',
     name: 'Himalayan Escape',
     budget: 22000,
     image: himaImg,
@@ -179,6 +246,19 @@ const mockPackages = [
     drop: 'Leh Airport',
     inclusions: ['Hotel Stay', 'Meals', 'Sightseeing'],
     exclusions: ['Flights', 'Personal Expenses'],
+    // Additional fields for edit form
+    startDate: '2024-12-01',
+    endDate: '2024-12-08',
+    price: 22000,
+    tripType: 'Adventure',
+    departureLocation: 'Leh Airport',
+    travelMode: 'Flight, Car',
+    maxGroupSize: 22,
+    minimumAge: 18,
+    languageSupport: ['English', 'Ladakhi'],
+    availableDates: ['2024-12-01', '2025-01-01'],
+    bookingDeadline: '2024-11-20',
+    discounts: ['SNOW40', 'GROUP20']
   },
 ];
 
@@ -186,6 +266,8 @@ function AgencyPackages() {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPackage, setEditingPackage] = useState(null);
 
   useEffect(() => {
     // Simulate API fetch
@@ -197,11 +279,34 @@ function AgencyPackages() {
 
   const closeModal = () => setSelected(null);
 
+  const handleEditPackage = (pkg) => {
+    setEditingPackage(pkg);
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingPackage(null);
+  };
+
+  const handlePackageUpdate = (updatedPackage) => {
+    setPackages(prevPackages => 
+      prevPackages.map(pkg => 
+        pkg.id === updatedPackage.id ? { ...pkg, ...updatedPackage } : pkg
+      )
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col items-center">
       <div className={selected ? "w-full flex flex-col items-center opacity-40 pointer-events-none" : "w-full flex flex-col items-center"}>
       <header className="w-full bg-white shadow-sm flex items-center justify-between px-4 sm:px-8 py-4 mb-8">
-        <span className="text-2xl sm:text-2xl font-extrabold tracking-tight text-purple-700">trippnova</span>
+        <span 
+          className="text-2xl sm:text-2xl font-extrabold tracking-tight text-purple-700 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => navigate('/')}
+        >
+          trippnova
+        </span>
         <span className="text-gray-500 font-medium text-sm">Your Tour Packages</span>
       </header>
       <main className="w-full max-w-5xl px-2 sm:px-4">
@@ -218,7 +323,20 @@ function AgencyPackages() {
                     <div className="font-bold text-lg text-gray-900 mb-1">{pkg.name}</div>
                     <div className="text-gray-500 text-sm mb-2">Budget: <span className="font-semibold text-green-700">₹{pkg.budget}</span></div>
                   </div>
-                  <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold shadow hover:bg-blue-700 transition text-sm" onClick={() => setSelected(pkg)}>View Details</button>
+                  <div className="flex gap-2 mt-4">
+                    <button 
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold shadow hover:bg-blue-700 transition text-sm" 
+                      onClick={() => setSelected(pkg)}
+                    >
+                      View Details
+                    </button>
+                    <button 
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold shadow hover:bg-green-700 transition text-sm" 
+                      onClick={() => handleEditPackage(pkg)}
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -226,10 +344,11 @@ function AgencyPackages() {
         )}
       </main>
       </div>
-      {/* Modal */}
+      
+      {/* View Details Modal */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-200 bg-opacity-70">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 relative animate-fadeIn flex flex-col md:flex-row gap-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-200 bg-opacity-70 modal-backdrop">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 relative modal-content flex flex-col md:flex-row gap-6">
             <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold" onClick={closeModal}>&times;</button>
             <img src={selected.image} alt={selected.name} className="w-full md:w-72 h-56 object-cover rounded-xl mb-4 md:mb-0" />
             <div className="flex-1 flex flex-col gap-2">
@@ -271,6 +390,15 @@ function AgencyPackages() {
           </div>
         </div>
       )}
+
+      {/* Edit Package Modal */}
+      <EditPackageModal
+        isOpen={showEditModal}
+        onClose={closeEditModal}
+        packageData={editingPackage}
+        onUpdate={handlePackageUpdate}
+      />
+      
       <Footer />
     </div>
   );

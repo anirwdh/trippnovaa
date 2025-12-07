@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import addImg from '../assets/Images/add.jpg';
 import Footer from './Footer';
 
 function Contact() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     helpType: '',
     fullName: '',
@@ -10,6 +13,8 @@ function Contact() {
     mobile: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -19,24 +24,148 @@ function Contact() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const showNotification = (type, message) => {
+    setNotification({ show: true, type, message });
+    setTimeout(() => {
+      setNotification({ show: false, type: '', message: '' });
+    }, 5000);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // Here you would typically send the data to your backend
-    alert('Thank you for your feedback! We will get back to you soon.');
+    setIsSubmitting(true);
+    
+    try {
+      // Validate required fields
+      if (!formData.helpType || !formData.fullName || !formData.email || !formData.message) {
+        throw new Error('Please fill in all required fields');
+      }
+
+      // Create FormData object for Formspree
+      const formDataToSend = new FormData();
+      formDataToSend.append('helpType', formData.helpType);
+      formDataToSend.append('fullName', formData.fullName);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('mobile', formData.mobile || '');
+      formDataToSend.append('message', formData.message);
+      formDataToSend.append('_subject', `Contact Form Submission - ${formData.helpType}`);
+      formDataToSend.append('_replyto', formData.email);
+
+      console.log('Submitting form data:', {
+        helpType: formData.helpType,
+        fullName: formData.fullName,
+        email: formData.email,
+        mobile: formData.mobile,
+        message: formData.message
+      });
+
+      const response = await fetch('https://formspree.io/f/xovnkkly', {
+        method: 'POST',
+        body: formDataToSend,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Form submission successful:', result);
+        showNotification('success', 'Thank you for your feedback! We will get back to you soon.');
+        // Reset form
+        setFormData({
+          helpType: '',
+          fullName: '',
+          email: '',
+          mobile: '',
+          message: ''
+        });
+      } else {
+        const errorData = await response.text();
+        console.error('Form submission failed:', response.status, errorData);
+        throw new Error(`Form submission failed with status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      
+      // More specific error messages
+      let errorMessage = 'Sorry, there was an error submitting your form. ';
+      
+      if (error.message.includes('required fields')) {
+        errorMessage = error.message;
+      } else if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+        errorMessage += 'Please check your internet connection and try again.';
+      } else if (error.message.includes('status')) {
+        errorMessage += 'The form service is temporarily unavailable. Please try again later or contact us directly.';
+      } else {
+        errorMessage += 'Please try again or contact us directly at team@trippnova.com';
+      }
+      
+      showNotification('error', errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-white">
+      <Helmet>
+        <title>Contact Trippnova | Support & Inquiries</title>
+        <meta name="description" content="Contact Trippnova for booking help, partnership inquiries, or support. We’re here to help you plan your perfect trip." />
+        <link rel="canonical" href="https://trippnova.com/contact" />
+      </Helmet>
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Contact Us</h1>
+            <h1 
+              className="text-2xl font-bold text-gray-900 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate('/')}
+            >
+              Contact Us
+            </h1>
             <div className="text-sm text-gray-500">We're here to help</div>
           </div>
         </div>
       </header>
+
+      {/* Notification */}
+      {notification.show && (
+        <div className={`fixed top-4 right-4 z-50 max-w-md p-4 rounded-lg shadow-lg ${
+          notification.type === 'success' 
+            ? 'bg-green-100 border border-green-400 text-green-700' 
+            : 'bg-red-100 border border-red-400 text-red-700'
+        }`}>
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              {notification.type === 'success' ? (
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">{notification.message}</p>
+            </div>
+            <div className="ml-auto pl-3">
+              <button
+                onClick={() => setNotification({ show: false, type: '', message: '' })}
+                className="inline-flex text-gray-400 hover:text-gray-600"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Banner */}
       <div 
@@ -65,7 +194,10 @@ function Contact() {
           <div className="bg-white rounded-xl shadow-2xl p-8 border border-gray-100">
             <h3 className="text-2xl font-bold text-gray-900 mb-6">Send us your feedback</h3>
             
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form 
+              onSubmit={handleSubmit} 
+              className="space-y-6"
+            >
               {/* How can we help you? */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -156,15 +288,63 @@ function Contact() {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                disabled={isSubmitting}
+                className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
+                  isSubmitting 
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
               >
-                Submit Feedback
+                {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
               </button>
             </form>
           </div>
 
           {/* Right Column - Information Cards */}
           <div className="space-y-6">
+            
+            {/* Contact Information Card */}
+            <div className="bg-white rounded-xl shadow-2xl p-6 border border-gray-100">
+              <div className="flex items-start">
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-lg font-bold text-gray-900 mb-4">Get in Touch</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-gray-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm text-gray-600">Phone</p>
+                        <a href="tel:+916263077211" className="text-purple-600 font-semibold hover:text-purple-700 transition-colors">
+                          +91 6263077211
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-gray-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm text-gray-600">Email</p>
+                        <a href="mailto:team@trippnova.com" className="text-purple-600 font-semibold hover:text-purple-700 transition-colors">
+                          team@trippnova.com
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-sm text-gray-600">
+                      <span className="font-semibold">Business Hours:</span> Monday - Friday, 9:00 AM - 6:00 PM IST
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
             
             {/* Emergency Card */}
             <div className="bg-white rounded-xl shadow-2xl p-6 border border-gray-100">
@@ -179,9 +359,7 @@ function Contact() {
                   <p className="text-gray-600 text-sm mb-4">
                     We are committed to the safety of everyone using Trippnova. If you're experiencing an emergency during your trip, please contact us immediately.
                   </p>
-                  <button className="text-red-600 font-semibold hover:text-red-700 transition-colors">
-                    Report here →
-                  </button>
+                 
                 </div>
               </div>
             </div>
@@ -199,9 +377,7 @@ function Contact() {
                   <p className="text-gray-600 text-sm mb-4">
                     Click on the 'Support' or 'Booking help' section in your app to connect to our customer support team for immediate assistance.
                   </p>
-                  <button className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
-                    Get help now →
-                  </button>
+                  
                 </div>
               </div>
             </div>

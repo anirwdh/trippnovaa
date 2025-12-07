@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Login from '../Components/Login';
+import { useAdminAuth } from '../contexts/AdminAuthContext';
+import AdminLogin from '../Components/AdminLogin';
 import AdminHeader from '../Components/AdminHeader';
 
 function BookingManagement() {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isAdminLoggedIn, isInitialized } = useAdminAuth();
   const [showLoginModal, setShowLoginModal] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -88,16 +89,19 @@ function BookingManagement() {
     }
   ];
 
-  // Handle successful login
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
-    setShowLoginModal(false);
-  };
-
   // Handle login close
   const handleLoginClose = () => {
     setShowLoginModal(false);
   };
+
+  // Show login modal only if not logged in and context is initialized
+  useEffect(() => {
+    if (isInitialized && !isAdminLoggedIn) {
+      setShowLoginModal(true);
+    } else if (isAdminLoggedIn) {
+      setShowLoginModal(false);
+    }
+  }, [isAdminLoggedIn, isInitialized]);
 
   // Filter bookings based on search and filters
   const filteredBookings = bookings.filter(booking => {
@@ -152,17 +156,16 @@ function BookingManagement() {
 
   return (
     <>
-      {/* Show Login Modal if not logged in */}
+      {/* Show Admin Login Modal if not logged in */}
       {showLoginModal && (
-        <Login 
+        <AdminLogin 
           isOpen={showLoginModal} 
           onClose={handleLoginClose}
-          onLoginSuccess={handleLoginSuccess}
         />
       )}
 
       {/* Show Booking Management Dashboard after successful login */}
-      {isLoggedIn && (
+      {isAdminLoggedIn && (
         <AdminHeader>
           <div className="max-w-7xl mx-auto">
             {/* Search and Filter Bar */}

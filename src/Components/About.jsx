@@ -1,15 +1,29 @@
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import addImg from '../assets/Images/add.jpg';
 import Footer from './Footer';
 
 function About() {
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen bg-white">
+      <Helmet>
+        <title>About Trippnova | Your Travel Companion</title>
+        <meta name="description" content="Learn about Trippnova – your travel companion for curated travel packages, adventure trips, family holidays, and honeymoon destinations across India." />
+        <link rel="canonical" href="https://trippnova.com/about" />
+      </Helmet>
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">About Us</h1>
+            <h1 
+              className="text-2xl font-bold text-gray-900 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate('/')}
+            >
+              About Us
+            </h1>
             <div className="text-sm text-gray-500">Discover the World with Us</div>
           </div>
         </div>

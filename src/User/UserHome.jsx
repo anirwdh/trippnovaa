@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useAppSelector } from '../redux/hooks';
 import { useNavigate } from 'react-router-dom';
 import '../App.css';
-import Spline from '@splinetool/react-spline';
 import Login from '../Components/Login';
 import CreateNew from '../Components/CreateNew';
 import Header from '../Components/Header';
@@ -28,11 +28,26 @@ import ziroImg from '../assets/Images/ziro.jpg';
 import girImg from '../assets/Images/gir.jpeg';
 import choptaImg from '../assets/Images/chopta.jpg';
 import jawaiImg from '../assets/Images/jawai.jpg';
-import logoImg from '../assets/Images/logo.png';
+import logoImg from '../assets/Images/lllg.png';
 import roadImg from '../assets/Images/road.jpg';
 import bikeImg from '../assets/Images/bike.jpg';
 import addImg from '../assets/Images/add.jpg';
 import fourByFourImg from '../assets/Images/four.jpg';
+import heroVideo from '../assets/Images/pkkp.mp4';
+import himaImg from '../assets/Images/hima.jpg';
+import sec1Img from '../assets/Images/sec1.jpeg';
+import sec2Img from '../assets/Images/sec2.jpeg';
+import sec3Img from '../assets/Images/sec3.jpeg';
+import sec4Img from '../assets/Images/sec4.jpeg';
+import sec5Img from '../assets/Images/sec5.png';
+import sec6Img from '../assets/Images/sec6.JPG';
+import sec7Img from '../assets/Images/sec7.JPG';
+import sec8Img from '../assets/Images/sec8.png';
+import sec10Img from '../assets/Images/sec10.JPG';
+import photoImg from '../assets/Images/photo.jpeg';
+import photo2Img from '../assets/Images/photo2.jpeg';
+import photo3Img from '../assets/Images/photo3.jpeg';
+import photo4Img from '../assets/Images/photo4.jpeg';
 import TravelIcon from '../assets/animatedicons/travel';
 import SupportIcon from '../assets/animatedicons/suport';
 import DealsIcon from '../assets/animatedicons/deals';
@@ -43,11 +58,22 @@ import AdventureIcon from '../assets/animatedicons/adventure';
 import HoneymoonIcon from '../assets/animatedicons/Honeymoon';
 import PilgrimageIcon from '../assets/animatedicons/pilgrimage';
 
+
+
 function Home() {
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const [scrolled, setScrolled] = useState(false);
-  // Trending destinations - removed auto-scroll logic
+  const [isInHeroSection, setIsInHeroSection] = useState(true);
+  // Trending destinations auto-scroll
   const trendingRef = useRef(null);
+  const [trendingAutoScroll, setTrendingAutoScroll] = useState(true);
+  const [trendingTranslateX, setTrendingTranslateX] = useState(0);
   const cardWidth = 240; // width + gap
+  const visibleCards = 4; // Number of cards visible at once
+  
+  // Curated section (no auto-scroll)
+  const curatedRef = useRef(null);
+  const [curatedTranslateX, setCuratedTranslateX] = useState(0);
   const destinations = [
     { img: manaliImg, label: 'Manali' },
     { img: keralaImg, label: 'Kerala' },
@@ -61,20 +87,106 @@ function Home() {
   const [dealsHover, setDealsHover] = useState([false, false, false, false, false, false]);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState('Aniruddh');
+  const [heroVideoSrc, setHeroVideoSrc] = useState(heroVideo);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [visibleImages, setVisibleImages] = useState(new Set([0, 1, 2, 3, 4])); // First 5 cards visible initially
+  const [hoveredImage, setHoveredImage] = useState(null);
+  const [loadedImages, setLoadedImages] = useState(new Set()); // Track loaded images for smooth fade-in
+  const storiesGalleryRef = useRef(null);
+  const [storiesScrollX, setStoriesScrollX] = useState(0);
   const navigate = useNavigate();
+  
+  // Handle image load for smooth fade-in
+  const handleImageLoad = (imgSrc) => {
+    setLoadedImages(prev => new Set([...prev, imgSrc]));
+  };
 
-  const handleLoginSuccess = (loginState = true) => {
-    if (loginState === false) {
-      // Logout
-      setIsLoggedIn(false);
+  // Function to handle card clicks with authentication check
+  const handleCardClick = (themeName = null) => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
     } else {
-      // Login
-      setIsLoggedIn(true);
-      setShowLoginModal(false);
+      navigate('/userexplore', { state: { themeName } });
     }
   };
+
+  // Function to handle search results from Header
+  const handleSearchResults = (results, query) => {
+    console.log('UserHome: Received search results:', results, 'for query:', query);
+    setSearchResults(results || []);
+    setSearchQuery(query || '');
+    setShowSearchResults(true);
+    
+    // Scroll to search results section
+    setTimeout(() => {
+      const searchSection = document.getElementById('search-results-section');
+      if (searchSection) {
+        searchSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  // Function to handle trip card click from search results
+  const handleTripClick = (trip) => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+    } else {
+      navigate('/userdetailbooking', { state: { trip } });
+    }
+  };
+
+  // Function to handle individual image hover
+  const handleImageHover = (index) => {
+    setHoveredImage(index);
+    // Fade out the first 5 cards when hovering over any image
+    if (index < 5) {
+      setVisibleImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(index);
+        return newSet;
+      });
+    } else {
+      // Show the hovered image
+      setVisibleImages(prev => new Set([...prev, index]));
+    }
+  };
+
+  const handleImageLeave = (index) => {
+    setHoveredImage(null);
+    // Restore the first 5 cards when leaving
+    if (index < 5) {
+      setVisibleImages(prev => new Set([...prev, index]));
+    } else {
+      // Hide the non-initial image
+      setVisibleImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(index);
+        return newSet;
+      });
+    }
+  };
+
+  // Console log authentication state and token
+  useEffect(() => {
+    console.log('UserHome: Authentication state:', { isAuthenticated, user });
+    
+    // Get token from localStorage
+    const token = localStorage.getItem('tripNovaAuthToken');
+    console.log('UserHome: Stored token:', token);
+    
+    // Get full auth data from localStorage
+    const authData = localStorage.getItem('tripNovaAuth');
+    if (authData) {
+      try {
+        const parsedAuth = JSON.parse(authData);
+        console.log('UserHome: Full auth data from localStorage:', parsedAuth);
+      } catch (error) {
+        console.error('UserHome: Error parsing auth data:', error);
+      }
+    }
+  }, [isAuthenticated, user]);
 
   // THEME CAROUSEL AUTO-SCROLL
   const themeCarouselRef = useRef(null);
@@ -92,31 +204,74 @@ function Home() {
   };
 
   const handleUserEngage = () => {
-    // Auto-scroll functionality removed
+    // Pause auto-scroll when user interacts
+    setTrendingAutoScroll(false);
+  };
+
+  const handleUserLeave = () => {
+    // Resume auto-scroll immediately when user stops interacting
+    setTrendingAutoScroll(true);
   };
 
   const scrollByCard = (dir) => {
-    const trending = trendingRef.current;
-    if (!trending) return;
-    const scrollAmount = window.innerWidth < 768 ? 200 : cardWidth;
+    const cardWidthWithGap = cardWidth + 32;
+    const shiftAmount = cardWidthWithGap;
+    const maxTranslate = -(destinations.length - visibleCards) * cardWidthWithGap;
+    
     if (dir === 'left') {
-      trending.scrollLeft -= scrollAmount;
+      setTrendingTranslateX(prev => Math.min(0, prev + shiftAmount));
     } else {
-      trending.scrollLeft += scrollAmount;
+      setTrendingTranslateX(prev => Math.max(maxTranslate, prev - shiftAmount));
     }
+    // Pause auto-scroll when user manually scrolls
+    setTrendingAutoScroll(false);
   };
+
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 0) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
+      const heroSection = document.getElementById('hero-section');
+      if (heroSection) {
+        const heroHeight = heroSection.offsetHeight;
+        const scrollPosition = window.scrollY;
+        
+        if (scrollPosition > 0) {
+          setScrolled(true);
+        } else {
+          setScrolled(false);
+        }
+        
+        // Check if we're still in the hero section
+        if (scrollPosition < heroHeight) {
+          setIsInHeroSection(true);
+        } else {
+          setIsInHeroSection(false);
+        }
       }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Auto-slide for trending destinations - 4 cards visible, shift left
+  useEffect(() => {
+    if (!trendingAutoScroll) return;
+    
+    const slideInterval = setInterval(() => {
+      setTrendingTranslateX(prev => {
+        const cardWidthWithGap = cardWidth + 32; // card width + gap
+        const shiftAmount = cardWidthWithGap; // Shift by one card width
+        const maxTranslate = -(destinations.length - visibleCards) * cardWidthWithGap;
+        
+        if (prev <= maxTranslate) {
+          return 0; // Reset to beginning when reaching the end
+        }
+        return prev - shiftAmount; // Shift all cards to the left
+      });
+    }, 3000); // Shift every 3 seconds
+    
+    return () => clearInterval(slideInterval);
+  }, [trendingAutoScroll, destinations.length, cardWidth, visibleCards]);
 
   // Theme carousel seamless loop: on mount, set scrollLeft to start of first set
   useEffect(() => {
@@ -185,56 +340,129 @@ function Home() {
   const organisedCards = [
     { title: 'Road Trips', img: roadImg },
     { title: 'Bikers Group', img: bikeImg },
-    { title: '4*4', img: fourByFourImg },
+    { title: '4 X 4', img: fourByFourImg },
     { title: 'Adventure Trip', img: addImg },
   ];
 
-  return (
-    <div className="min-h-screen pt-[60px] bg-white">
-      {/* Header Component */}
-      <Header 
-        onLoginClick={() => setShowLoginModal(true)}
-        onSignupClick={() => setShowSignupModal(true)}
-        isLoggedIn={isLoggedIn}
-        userName={userName}
-        onLoginSuccess={handleLoginSuccess}
-      />
+  // Story images for the Stories Etched section
+  const storyImages = [
+    photoImg, photo2Img, photo3Img, photo4Img,
+    sec1Img, sec2Img, sec3Img, sec4Img, sec5Img, sec8Img, 
+    photoImg, photo2Img, photo3Img, photo4Img
+  ];
 
-      {/* Hero Section with Spline 3D */}
-      <section className="w-full h-screen bg-transparent relative">
-        <Spline
-          scene="https://prod.spline.design/M7wkkObA0X8glgTZ/scene.splinecode"
-          style={{ width: '100%', height: '100%' }}
+  // Preload critical images (hero, first visible sections) for smoother performance
+  useEffect(() => {
+    // Preload hero images
+    heroImages.forEach((imgSrc) => {
+      const img = new Image();
+      img.src = imgSrc;
+    });
+    
+    // Preload first visible destination images
+    destinations.slice(0, 7).forEach((dest) => {
+      const img = new Image();
+      img.src = dest.img;
+    });
+    
+    // Preload curated journey images
+    organisedCards.forEach((card) => {
+      const img = new Image();
+      img.src = card.img;
+    });
+    
+    // Preload deals section images
+    [kashmirImg, himacImg, goaImg, keralaImg, jaipImg].forEach((imgSrc) => {
+      const img = new Image();
+      img.src = imgSrc;
+    });
+    
+    // Preload hidden gems images
+    hiddenGems.forEach((gem) => {
+      const img = new Image();
+      img.src = gem.img;
+    });
+    
+    // Preload story images
+    storyImages.forEach((imgSrc) => {
+      const img = new Image();
+      img.src = imgSrc;
+    });
+  }, []);
+
+  // Auto-scroll stories gallery
+  useEffect(() => {
+    const scrollInterval = setInterval(() => {
+      if (storiesGalleryRef.current) {
+        const gallery = storiesGalleryRef.current;
+        const cardWidth = 200; // Card width + gap
+        const maxScroll = gallery.scrollWidth - gallery.clientWidth;
+        const currentScroll = gallery.scrollLeft;
+        
+        // Check if we've reached the end (accounting for duplicate images)
+        if (currentScroll >= maxScroll - cardWidth) {
+          // Reset to start for seamless loop
+          gallery.scrollLeft = 0;
+          setStoriesScrollX(0);
+        } else {
+          // Smooth scroll forward
+          const newScroll = currentScroll + cardWidth;
+          setStoriesScrollX(newScroll);
+        }
+      }
+    }, 1000); // Scroll every 3 seconds
+    
+    return () => clearInterval(scrollInterval);
+  }, []);
+  
+  // Update scroll position smoothly
+  useEffect(() => {
+    if (storiesGalleryRef.current) {
+      storiesGalleryRef.current.scrollTo({
+        left: storiesScrollX,
+        behavior: 'smooth'
+      });
+    }
+  }, [storiesScrollX]);
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Hero Section with bjfe.mp4 Video */}
+      <section id="hero-section" className="w-full h-screen relative overflow-hidden">
+        {/* Background Video */}
+        <video 
+          src={heroVideoSrc} 
+          autoPlay 
+          muted 
+          loop 
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          style={{ 
+            minHeight: '100vh', 
+            minWidth: '100vw'
+          }}
+          onLoadedData={() => console.log('Hero video loaded successfully:', heroVideoSrc)}
+          onError={(e) => {
+            console.error('Error loading hero video:', e);
+          }}
         />
         
         {/* Text Overlay */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 pointer-events-none px-2 sm:px-4">
-          {/* Main Title */}
-          <h1 
-            className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-thin tracking-widest uppercase mb-2 sm:mb-4 text-center pointer-events-none"
-            style={{
-              background: 'linear-gradient(to right, #ffe680, #ffffff)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 230, 128, 0.3)'
-            }}
-          >
-            TRIPPNOVA
-          </h1>
+          {/* Main Title - Trippnova in Poppins */}
+         
           
-          {/* Separator Line */}
-          <div className="w-16 xs:w-20 sm:w-24 md:w-28 lg:w-32 h-px bg-white mb-2 sm:mb-4 pointer-events-none"></div>
-          
-          {/* Tagline */}
-          <p 
-            className="text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl font-light tracking-wide uppercase text-center mb-4 sm:mb-6 md:mb-8 pointer-events-none px-2 max-w-xs sm:max-w-md md:max-w-lg"
-            style={{
-              textShadow: '1px 1px 2px rgba(0, 0, 0, 0.7), 0 0 10px rgba(255, 255, 255, 0.2)'
-            }}
-          >
-            BEYOND ITINERARIES. INTO EXPERIENCES.
-          </p>
+          {/* Remo Logo */}
+          <div className="flex justify-center mb-4 sm:mb-6 md:mb-8">
+            <img 
+               src="/sdsd.png"  
+              alt="Remo Logo" 
+              className="max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg h-auto pointer-events-none"
+              style={{
+                filter: 'drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.2))'
+              }}
+            />
+          </div>
           
           {/* Call to Action Button */}
           <button 
@@ -251,7 +479,122 @@ function Home() {
         </div>
       </section>
 
-      {/* Organised by Trippnova Section (match Top Trending Destinations style) */}
+      {/* Header Component - Positioned absolutely over hero section */}
+      <Header 
+        onLoginClick={() => setShowLoginModal(true)}
+        onSignupClick={() => setShowSignupModal(true)}
+        onSearchResults={handleSearchResults}
+        isInHeroSection={isInHeroSection}
+        onLogoClick={() => {
+          const heroSection = document.getElementById('hero-section');
+          if (heroSection) {
+            heroSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      />
+
+      {/* Rest of content with proper spacing */}
+      <div className="pt-[60px]">
+
+      {/* Search Results Section */}
+      {showSearchResults && (
+        <section id="search-results-section" className="my-4 xs:my-6 sm:my-8 md:my-12 mx-auto max-w-[1300px] px-2 xs:px-3 sm:px-4 py-4 md:py-8 relative">
+          <div className="text-center mb-6 xs:mb-8 sm:mb-8 md:mb-12">
+            <h2 
+              className="text-2xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold relative inline-block mb-3 xs:mb-4"
+              style={{
+                fontFamily: 'Playfair Display, serif',
+                background: 'linear-gradient(to right, #1e3c72, #2a5298)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                letterSpacing: '0.1em',
+                textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+            >
+              Search Results for "{searchQuery}"
+              <span className="block w-12 xs:w-14 sm:w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mt-2 xs:mt-3 mx-auto"></span>
+            </h2>
+            <p className="text-sm xs:text-base sm:text-lg md:text-xl text-gray-600 italic font-light px-2" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+              {searchResults.length > 0 ? `Found ${searchResults.length} trip${searchResults.length === 1 ? '' : 's'} matching your search` : 'No trips found matching your search criteria'}
+            </p>
+          </div>
+          
+          {searchResults.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 xs:gap-6 md:gap-8">
+              {searchResults.map((trip, index) => (
+                <div
+                  key={trip._id || index}
+                  className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+                  onClick={() => handleTripClick(trip)}
+                >
+                  {/* Trip Image */}
+                  <div className="relative h-48 xs:h-56 md:h-64 overflow-hidden">
+                    <img
+                      src={trip.coverImage || trip.image || '/ll.png'}
+                      alt={trip.title || 'Trip'}
+                      className="w-full h-full object-cover transition-opacity duration-300"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        e.target.src = '/ll.png';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                  </div>
+                  
+                  {/* Trip Details */}
+                  <div className="p-4 xs:p-5 md:p-6">
+                    <h3 className="font-bold text-lg xs:text-xl md:text-2xl text-gray-900 mb-2 line-clamp-2">
+                      {trip.title || 'Trip Package'}
+                    </h3>
+                    
+                    <div className="flex items-center gap-2 mb-3">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="text-sm text-gray-600">
+                        {trip.destination || 'Destination'}
+                      </span>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 line-clamp-3">
+                        {trip.description || 'No description available'}
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center justify-end">
+                      <button className="bg-gradient-to-r from-pink-500 to-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:from-pink-600 hover:to-blue-600 transition-all">
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No trips found</h3>
+              <p className="text-gray-600 mb-6">Try searching with different keywords or browse our popular destinations below.</p>
+              <button 
+                onClick={() => setShowSearchResults(false)}
+                className="bg-gradient-to-r from-pink-500 to-blue-500 text-white px-6 py-3 rounded-lg font-medium hover:from-pink-600 hover:to-blue-600 transition-all"
+              >
+                Browse All Trips
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Curated Journeys by Trippnova Section (match Top Trending Destinations style) */}
       <section className="my-4 xs:my-6 sm:my-8 md:my-12 mx-auto max-w-[1300px] px-2 xs:px-3 sm:px-4 py-4 md:py-8 relative" data-section="organised-by-trippnova">
         <div className="text-center mb-6 xs:mb-8 sm:mb-8 md:mb-12">
           <h2 
@@ -270,29 +613,45 @@ function Home() {
             <span className="block w-12 xs:w-14 sm:w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mt-2 xs:mt-3 mx-auto"></span>
           </h2>
           <p className="text-sm xs:text-base sm:text-lg md:text-xl text-gray-600 italic font-light px-2" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-            Where Journeys Begin, Beyond the Map.
+            Where Journeys Begin, Beyond the Map. Trippnova - Your trusted travel companion for unforgettable adventures.
           </p>
         </div>
-        <div className="flex gap-3 xs:gap-4 sm:gap-6 md:gap-8 lg:gap-10 overflow-x-auto scroll-smooth pb-2 scrollbar-hide flex-nowrap justify-start md:justify-center">
-          {organisedCards.map((card, idx) => (
-            <div
-              key={card.title}
-              className="flex flex-col items-center w-[140px] xs:w-[160px] sm:w-[180px] md:w-[220px] lg:w-[260px] flex-shrink-0 select-none cursor-pointer"
-              onClick={() => navigate('/userexplore')}
-            >
-              <img
-                src={card.img}
-                alt={card.title}
-                className="w-[120px] h-[120px] xs:w-[140px] xs:h-[140px] sm:w-[160px] sm:h-[160px] md:w-[200px] md:h-[200px] lg:w-[240px] lg:h-[240px] rounded-2xl xs:rounded-3xl object-cover mb-3 xs:mb-4 shadow-lg transition-transform duration-300 hover:scale-105"
-              />
-              <span className="font-bold text-sm xs:text-base sm:text-lg md:text-xl mt-1 text-center px-1">{card.title}</span>
-            </div>
-          ))}
+        <div
+          ref={curatedRef}
+          className="overflow-x-auto md:overflow-hidden pb-2 px-2 xs:px-3 sm:px-4 scrollbar-hide snap-x snap-mandatory"
+        >
+          <div
+            className="flex gap-4 xs:gap-5 sm:gap-6 md:gap-8 flex-nowrap transition-transform duration-500 ease-in-out py-6"
+            style={{ transform: `translateX(${curatedTranslateX}px)` }}
+          >
+            {organisedCards.map((card, idx) => (
+              <div
+                key={card.title}
+                className="relative w-[190px] xs:w-[220px] sm:w-[240px] md:w-[240px] lg:w-[290px] h-[300px] xs:h-[340px] sm:h-[380px] md:h-[400px] lg:h-[420px] flex-shrink-0 select-none cursor-pointer rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:-translate-y-6 hover:z-30 transition-all duration-500 ease-out group snap-start"
+                onClick={() => handleCardClick(card.title)}
+              >
+                <img
+                  src={card.img}
+                  alt={card.title}
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loadedImages.has(card.img) ? 'opacity-100' : 'opacity-0'}`}
+                  loading="eager"
+                  decoding="async"
+                  onLoad={() => handleImageLoad(card.img)}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                <div className="absolute bottom-3 xs:bottom-4 left-3 xs:left-4 right-3 xs:right-4">
+                  <span className="text-white font-bold text-sm xs:text-base sm:text-lg md:text-xl text-center block drop-shadow-lg">
+                    {card.title}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Top Trending Destinations Section */}
-      <section className="my-4 xs:my-6 sm:my-8 md:my-12 mx-auto max-w-[1300px] px-2 xs:px-3 sm:px-4 py-4 md:py-8 relative">
+      <section className="mt-8 xs:mt-10 sm:mt-12 md:mt-16 mb-4 xs:mb-6 sm:mb-8 md:mb-12 mx-auto max-w-[1300px] px-2 xs:px-3 sm:px-4 py-4 md:py-8 relative">
         <div className="text-center mb-6 xs:mb-8 sm:mb-8 md:mb-12">
           <h2 
             className="text-2xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold relative inline-block mb-3 xs:mb-4"
@@ -329,22 +688,39 @@ function Home() {
         </button>
         <div
           ref={trendingRef}
-          className="flex gap-3 xs:gap-4 sm:gap-6 md:gap-8 lg:gap-10 overflow-x-auto scroll-smooth pb-2 scrollbar-hide flex-nowrap px-8 xs:px-10 sm:px-0"
+          className="overflow-hidden pb-2 px-12 xs:px-14 sm:px-16 md:px-20 lg:px-24"
+          onMouseEnter={handleUserEngage}
+          onMouseLeave={handleUserLeave}
+          onTouchStart={handleUserEngage}
+          onTouchEnd={handleUserLeave}
         >
-          {destinations.map((dest, idx) => (
-            <div
-              key={idx}
-              className="flex flex-col items-center w-[140px] xs:w-[160px] sm:w-[180px] md:w-[200px] lg:w-[220px] flex-shrink-0 select-none cursor-pointer"
-              onClick={() => navigate('/userexplore')}
-            >
-              <img
-                src={dest.img}
-                alt={dest.label}
-                className="w-[120px] h-[120px] xs:w-[140px] xs:h-[140px] sm:w-[160px] sm:h-[160px] md:w-[180px] md:h-[180px] lg:w-[200px] lg:h-[200px] rounded-2xl xs:rounded-3xl object-cover mb-3 xs:mb-4 shadow-lg transition-transform duration-300 hover:scale-105"
-              />
-              <span className="font-bold text-sm xs:text-base sm:text-lg md:text-xl mt-1 text-center px-1">{dest.label}</span>
-            </div>
-          ))}
+          <div
+            className="flex gap-4 xs:gap-5 sm:gap-6 md:gap-8 flex-nowrap transition-transform duration-500 ease-in-out py-6"
+            style={{ transform: `translateX(${trendingTranslateX}px)` }}
+          >
+            {destinations.map((dest, idx) => (
+              <div
+                key={idx}
+                className="relative w-[190px] xs:w-[220px] sm:w-[240px] md:w-[240px] lg:w-[290px] h-[300px] xs:h-[340px] sm:h-[380px] md:h-[400px] lg:h-[420px] flex-shrink-0 select-none cursor-pointer rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:-translate-y-6 hover:z-30 transition-all duration-500 ease-out group"
+                onClick={() => handleCardClick(dest.label)}
+              >
+                <img
+                  src={dest.img}
+                  alt={dest.label}
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loadedImages.has(dest.img) ? 'opacity-100' : 'opacity-0'}`}
+                  loading={idx < 4 ? "eager" : "lazy"}
+                  decoding="async"
+                  onLoad={() => handleImageLoad(dest.img)}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                <div className="absolute bottom-3 xs:bottom-4 left-3 xs:left-4 right-3 xs:right-4">
+                  <span className="text-white font-bold text-sm xs:text-base sm:text-lg md:text-xl text-center block drop-shadow-lg">
+                    {dest.label}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -375,10 +751,17 @@ function Home() {
           <div className="relative rounded-2xl overflow-hidden min-h-[180px] xs:min-h-[200px] md:min-h-[240px] shadow-lg col-span-1 row-span-1 bg-none cursor-pointer"
             onMouseEnter={() => setDealsHover(h => h.map((v, i) => i === 0 ? true : v))}
             onMouseLeave={() => setDealsHover(h => h.map((v, i) => i === 0 ? false : v))}
-            onClick={() => navigate('/userexplore')}
+            onClick={() => handleCardClick('Kashmir')}
           >
             <div className="w-full h-full overflow-hidden relative">
-              <img src={kashmirImg} alt="Kashmir" className={`w-full h-full object-cover min-h-[180px] xs:min-h-[200px] md:min-h-[240px] transition-transform duration-300 will-change-transform ${dealsHover[0] ? 'scale-110' : 'scale-100'}`} />
+              <img 
+                src={kashmirImg} 
+                alt="Kashmir" 
+                className={`w-full h-full object-cover min-h-[180px] xs:min-h-[200px] md:min-h-[240px] transition-all duration-300 will-change-transform ${dealsHover[0] ? 'scale-110' : 'scale-100'} ${loadedImages.has(kashmirImg) ? 'opacity-100' : 'opacity-0'}`}
+                loading="eager"
+                decoding="async"
+                onLoad={() => handleImageLoad(kashmirImg)}
+              />
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute left-3 xs:left-4 md:left-6 bottom-3 xs:bottom-4 md:bottom-7 text-white">
@@ -390,10 +773,17 @@ function Home() {
           <div className="relative rounded-2xl overflow-hidden min-h-[320px] xs:min-h-[360px] sm:min-h-[400px] md:min-h-[500px] shadow-lg col-span-1 row-span-2 bg-none cursor-pointer"
             onMouseEnter={() => setDealsHover(h => h.map((v, i) => i === 1 ? true : v))}
             onMouseLeave={() => setDealsHover(h => h.map((v, i) => i === 1 ? false : v))}
-            onClick={() => navigate('/userexplore')}
+            onClick={() => handleCardClick('Shimla')}
           >
             <div className="w-full h-full overflow-hidden relative">
-              <img src={himacImg} alt="Shimla" className={`w-full h-full object-cover min-h-[320px] xs:min-h-[360px] sm:min-h-[400px] md:min-h-[500px] transition-transform duration-300 will-change-transform ${dealsHover[1] ? 'scale-110' : 'scale-100'}`} />
+              <img 
+                src={himacImg} 
+                alt="Shimla" 
+                className={`w-full h-full object-cover min-h-[320px] xs:min-h-[360px] sm:min-h-[400px] md:min-h-[500px] transition-all duration-300 will-change-transform ${dealsHover[1] ? 'scale-110' : 'scale-100'} ${loadedImages.has(himacImg) ? 'opacity-100' : 'opacity-0'}`}
+                loading="eager"
+                decoding="async"
+                onLoad={() => handleImageLoad(himacImg)}
+              />
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute left-3 xs:left-4 md:left-6 bottom-3 xs:bottom-4 md:bottom-7 text-white">
@@ -405,10 +795,17 @@ function Home() {
           <div className="relative rounded-2xl overflow-hidden min-h-[180px] xs:min-h-[200px] md:min-h-[240px] shadow-lg col-span-1 row-span-1 bg-none cursor-pointer"
             onMouseEnter={() => setDealsHover(h => h.map((v, i) => i === 2 ? true : v))}
             onMouseLeave={() => setDealsHover(h => h.map((v, i) => i === 2 ? false : v))}
-            onClick={() => navigate('/userexplore')}
+            onClick={() => handleCardClick('Goa')}
           >
             <div className="w-full h-full overflow-hidden relative">
-              <img src={goaImg} alt="Goa" className={`w-full h-full object-cover min-h-[180px] xs:min-h-[200px] md:min-h-[240px] transition-transform duration-300 will-change-transform ${dealsHover[2] ? 'scale-110' : 'scale-100'}`} />
+              <img 
+                src={goaImg} 
+                alt="Goa" 
+                className={`w-full h-full object-cover min-h-[180px] xs:min-h-[200px] md:min-h-[240px] transition-all duration-300 will-change-transform ${dealsHover[2] ? 'scale-110' : 'scale-100'} ${loadedImages.has(goaImg) ? 'opacity-100' : 'opacity-0'}`}
+                loading="eager"
+                decoding="async"
+                onLoad={() => handleImageLoad(goaImg)}
+              />
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute left-3 xs:left-4 md:left-6 bottom-3 xs:bottom-4 md:bottom-7 text-white">
@@ -420,10 +817,17 @@ function Home() {
           <div className="relative rounded-2xl overflow-hidden min-h-[180px] xs:min-h-[200px] md:min-h-[240px] shadow-lg col-span-1 row-span-1 bg-none cursor-pointer"
             onMouseEnter={() => setDealsHover(h => h.map((v, i) => i === 3 ? true : v))}
             onMouseLeave={() => setDealsHover(h => h.map((v, i) => i === 3 ? false : v))}
-            onClick={() => navigate('/userexplore')}
+            onClick={() => handleCardClick('Kerala')}
           >
             <div className="w-full h-full overflow-hidden relative">
-              <img src={keralaImg} alt="Kerala" className={`w-full h-full object-cover min-h-[180px] xs:min-h-[200px] md:min-h-[240px] transition-transform duration-300 will-change-transform ${dealsHover[3] ? 'scale-110' : 'scale-100'}`} />
+              <img 
+                src={keralaImg} 
+                alt="Kerala" 
+                className={`w-full h-full object-cover min-h-[180px] xs:min-h-[200px] md:min-h-[240px] transition-all duration-300 will-change-transform ${dealsHover[3] ? 'scale-110' : 'scale-100'} ${loadedImages.has(keralaImg) ? 'opacity-100' : 'opacity-0'}`}
+                loading="eager"
+                decoding="async"
+                onLoad={() => handleImageLoad(keralaImg)}
+              />
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute left-3 xs:left-4 md:left-6 bottom-3 xs:bottom-4 md:bottom-7 text-white">
@@ -435,10 +839,17 @@ function Home() {
           <div className="relative rounded-2xl overflow-hidden min-h-[180px] xs:min-h-[200px] md:min-h-[240px] shadow-lg col-span-1 row-span-1 bg-none cursor-pointer"
             onMouseEnter={() => setDealsHover(h => h.map((v, i) => i === 4 ? true : v))}
             onMouseLeave={() => setDealsHover(h => h.map((v, i) => i === 4 ? false : v))}
-            onClick={() => navigate('/userexplore')}
+            onClick={() => handleCardClick('Jaipur')}
           >
             <div className="w-full h-full overflow-hidden relative">
-              <img src={jaipImg} alt="Jaipur" className={`w-full h-full object-cover min-h-[180px] xs:min-h-[200px] md:min-h-[240px] transition-transform duration-300 will-change-transform ${dealsHover[4] ? 'scale-110' : 'scale-100'}`} />
+              <img 
+                src={jaipImg} 
+                alt="Jaipur" 
+                className={`w-full h-full object-cover min-h-[180px] xs:min-h-[200px] md:min-h-[240px] transition-all duration-300 will-change-transform ${dealsHover[4] ? 'scale-110' : 'scale-100'} ${loadedImages.has(jaipImg) ? 'opacity-100' : 'opacity-0'}`}
+                loading="eager"
+                decoding="async"
+                onLoad={() => handleImageLoad(jaipImg)}
+              />
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute left-3 xs:left-4 md:left-6 bottom-3 xs:bottom-4 md:bottom-7 text-white">
@@ -539,6 +950,7 @@ function Home() {
                         className="min-w-[80px] min-h-[80px] xs:min-w-[100px] xs:min-h-[100px] sm:min-w-[120px] sm:min-h-[120px] md:min-w-[140px] md:min-h-[140px] lg:min-w-[160px] lg:min-h-[160px] max-w-[90px] xs:max-w-[110px] sm:max-w-[130px] md:max-w-[150px] lg:max-w-[180px] max-h-[90px] xs:max-h-[110px] sm:max-h-[130px] md:max-h-[150px] lg:max-h-[180px] bg-transparent border-2 border-blue-500 rounded-full flex flex-col items-center justify-center shadow-md mb-2 transition-all duration-200 cursor-pointer relative select-none hover:bg-white/10 hover:shadow-xl"
                         onMouseDown={handleThemeUserEngage}
                         onTouchStart={handleThemeUserEngage}
+                        onClick={() => handleCardClick(theme.title)}
                       >
                         <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 md:w-18 md:h-18 lg:w-20 lg:h-20 mb-1 md:mb-2 flex items-center justify-center">{theme.icon}</div>
                         <div className="font-bold text-[8px] xs:text-[9px] sm:text-[10px] md:text-xs text-zinc-900 mb-0.5 text-center px-1">{theme.title}</div>
@@ -587,7 +999,14 @@ function Home() {
         </div>
         <div className="flex flex-col items-center w-full">
           <div className="w-full max-w-[1000px] rounded-2xl overflow-hidden relative shadow-lg bg-gray-200 min-h-[200px] xs:min-h-[240px] md:min-h-[320px]">
-            <img src={hiddenGems[hiddenGemIdx].img} alt={hiddenGems[hiddenGemIdx].name} className="w-full h-[240px] xs:h-[280px] md:h-[360px] object-cover block" />
+            <img 
+              src={hiddenGems[hiddenGemIdx].img} 
+              alt={hiddenGems[hiddenGemIdx].name} 
+              className={`w-full h-[240px] xs:h-[280px] md:h-[360px] object-cover block transition-opacity duration-500 ${loadedImages.has(hiddenGems[hiddenGemIdx].img) ? 'opacity-100' : 'opacity-0'}`}
+              loading="eager"
+              decoding="async"
+              onLoad={() => handleImageLoad(hiddenGems[hiddenGemIdx].img)}
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
             <div className="absolute left-4 xs:left-6 md:left-12 bottom-4 xs:bottom-6 md:bottom-12 text-white">
               <div className="font-bold text-lg xs:text-xl md:text-3xl tracking-wide">{hiddenGems[hiddenGemIdx].name}</div>
@@ -602,6 +1021,74 @@ function Home() {
           </div>
         </div>
       </section>
+
+      {/* Stories Etched in Every Journey Section - Auto-scrolling Gallery */}
+      <section className="my-4 xs:my-6 sm:my-8 md:my-12 mx-auto max-w-[1300px] px-2 xs:px-3 sm:px-4 py-4 md:py-8 relative">
+        <div className="text-center mb-6 xs:mb-8 sm:mb-8 md:mb-12">
+          <h2 
+            className="text-2xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold relative inline-block mb-3 xs:mb-4"
+            style={{
+              fontFamily: 'Playfair Display, serif',
+              background: 'linear-gradient(to right, #1e3c72, #2a5298)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              letterSpacing: '0.1em',
+              textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
+            Stories Etched in Every Journey
+            <span className="block w-12 xs:w-14 sm:w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mt-2 xs:mt-3 mx-auto"></span>
+          </h2>
+          <p className="text-sm xs:text-base sm:text-lg md:text-xl text-gray-600 italic font-light px-2" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+            Capturing moments that last a lifetime, one journey at a time.
+          </p>
+        </div>
+        
+        {/* Auto-scrolling Gallery */}
+        <div className="bg-white rounded-3xl p-4 xs:p-6 md:p-8 shadow-lg overflow-hidden">
+          <div
+            ref={storiesGalleryRef}
+            className="flex gap-4 xs:gap-5 sm:gap-6 md:gap-8 overflow-x-auto scroll-smooth stories-gallery"
+            style={{
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none', // Firefox
+              msOverflowStyle: 'none', // IE/Edge
+            }}
+            onMouseEnter={() => {
+              // Pause auto-scroll on hover
+              if (storiesGalleryRef.current) {
+                storiesGalleryRef.current.style.scrollBehavior = 'auto';
+              }
+            }}
+            onMouseLeave={() => {
+              // Resume smooth scrolling
+              if (storiesGalleryRef.current) {
+                storiesGalleryRef.current.style.scrollBehavior = 'smooth';
+              }
+            }}
+          >
+            {/* Duplicate images for seamless loop */}
+            {[...storyImages, ...storyImages].map((imgSrc, idx) => (
+              <div
+                key={`story-${idx}`}
+                className="flex-shrink-0 w-[250px] xs:w-[280px] sm:w-[320px] md:w-[360px] h-[300px] xs:h-[340px] sm:h-[380px] md:h-[420px] rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300"
+              >
+                <img
+                  src={imgSrc}
+                  alt={`Travel story ${idx + 1}`}
+                  className={`w-full h-full object-cover transition-opacity duration-500 ${loadedImages.has(imgSrc) ? 'opacity-100' : 'opacity-0'}`}
+                  loading={idx < storyImages.length ? "eager" : "lazy"}
+                  decoding="async"
+                  onLoad={() => handleImageLoad(imgSrc)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
 
       {/* Benefits of Booking With Us Section */}
       <section className="my-4 xs:my-6 sm:my-8 md:my-12 mx-auto max-w-[1050px] px-4 xs:px-6 sm:px-8 md:px-10 lg:px-34 py-6 md:py-8 bg-indigo-100 rounded-2xl xs:rounded-3xl shadow-2xl">
@@ -623,7 +1110,7 @@ function Home() {
               <span className="block w-12 xs:w-14 sm:w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mt-2 xs:mt-3 mx-auto"></span>
             </h2>
             <p className="text-sm xs:text-base sm:text-lg md:text-xl text-gray-600 italic font-light text-center px-2" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-              Discover the unrivalled benefits that promise memorable journeys all along.
+              Discover the unrivalled benefits that promise memorable journeys all along. Trippnova ensures every traveler gets the best value and experience.
             </p>
           </div>
           {[
@@ -668,7 +1155,6 @@ function Home() {
         isOpen={showLoginModal} 
         onClose={() => setShowLoginModal(false)}
         onOpenSignup={() => setShowSignupModal(true)}
-        onLoginSuccess={handleLoginSuccess}
       />
       
       {/* Signup Modal */}
@@ -677,6 +1163,7 @@ function Home() {
         onClose={() => setShowSignupModal(false)}
         onOpenLogin={() => setShowLoginModal(true)}
       />
+      </div>
     </div>
   );
 }

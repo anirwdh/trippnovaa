@@ -1,4 +1,6 @@
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import addImg from '../assets/Images/add.jpg';
 import TravelIcon from '../assets/animatedicons/travel';
 import SupportIcon from '../assets/animatedicons/suport';
@@ -9,14 +11,26 @@ import BeachIcon from '../assets/animatedicons/Beach';
 import Footer from './Footer';
 
 function Blog() {
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen bg-white">
+      <Helmet>
+        <title>Trippnova Blog | Travel Stories & Tips</title>
+        <meta name="description" content="Explore Trippnova’s travel stories, tips, and inspiration to plan your next unforgettable journey." />
+        <link rel="canonical" href="https://trippnova.com/blog" />
+      </Helmet>
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-      
-           
+            <h1 
+              className="text-2xl font-bold text-gray-900 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate('/')}
+            >
+              Blog
+            </h1>
+            <div className="text-sm text-gray-500">Travel Stories & Tips</div>
           </div>
         </div>
       </header>

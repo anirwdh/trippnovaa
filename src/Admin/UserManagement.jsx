@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Login from '../Components/Login';
+import { useAdminAuth } from '../contexts/AdminAuthContext';
+import AdminLogin from '../Components/AdminLogin';
 import AdminHeader from '../Components/AdminHeader';
 
 function UserManagement() {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isAdminLoggedIn, isInitialized } = useAdminAuth();
   const [showLoginModal, setShowLoginModal] = useState(true);
   const [activeTab, setActiveTab] = useState('users');
   const [searchTerm, setSearchTerm] = useState('');
@@ -115,16 +116,19 @@ function UserManagement() {
     }
   ];
 
-  // Handle successful login
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
-    setShowLoginModal(false);
-  };
-
   // Handle login close
   const handleLoginClose = () => {
     setShowLoginModal(false);
   };
+
+  // Show login modal only if not logged in and context is initialized
+  useEffect(() => {
+    if (isInitialized && !isAdminLoggedIn) {
+      setShowLoginModal(true);
+    } else if (isAdminLoggedIn) {
+      setShowLoginModal(false);
+    }
+  }, [isAdminLoggedIn, isInitialized]);
 
   // Filter users based on search and status
   const filteredUsers = users.filter(user => {
@@ -147,17 +151,16 @@ function UserManagement() {
 
   return (
     <>
-      {/* Show Login Modal if not logged in */}
+      {/* Show Admin Login Modal if not logged in */}
       {showLoginModal && (
-        <Login 
+        <AdminLogin 
           isOpen={showLoginModal} 
           onClose={handleLoginClose}
-          onLoginSuccess={handleLoginSuccess}
         />
       )}
 
       {/* Show User Management Dashboard after successful login */}
-      {isLoggedIn && (
+      {isAdminLoggedIn && (
         <AdminHeader>
           <div className="max-w-7xl mx-auto">
             {/* Search and Filter Bar */}

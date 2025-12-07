@@ -225,7 +225,12 @@ function AgencyLandingPage() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col items-center">
       <header className="w-full bg-white shadow-sm flex items-center justify-between px-4 sm:px-8 py-4">
-        <span className="text-2xl sm:text-2xl font-extrabold tracking-tight text-purple-700">trippnova</span>
+        <span 
+          className="text-2xl sm:text-2xl font-extrabold tracking-tight text-purple-700 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => navigate('/')}
+        >
+          trippnova
+        </span>
         <div className="flex items-center gap-4">
          
           <button type="button" className="px-0 py-0  text-grey-700  font-semibold  transition text-sm" onClick={() => navigate('/AgencyPackages')}>Packages</button>

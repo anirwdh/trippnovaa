@@ -25,7 +25,12 @@ function AgencyRegistration() {
   // Header as in the image
   const header = (
     <header className="w-full bg-white shadow-sm flex items-center justify-between px-4 sm:px-8 py-4">
-      <span className="text-2xl sm:text-2xl font-extrabold tracking-tight text-purple-700">trippnova</span>
+      <span 
+        className="text-2xl sm:text-2xl font-extrabold tracking-tight text-purple-700 cursor-pointer hover:opacity-80 transition-opacity"
+        onClick={() => window.location.href = '/'}
+      >
+        trippnova
+      </span>
       <a href="#" className="text-blue-600 font-semibold text-xs sm:text-base hover:underline">Need help? Call +919027224030</a>
     </header>
   );
