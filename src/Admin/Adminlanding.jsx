@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 import AdminLogin from '../Components/AdminLogin';
 import AdminHeader from '../Components/AdminHeader';
@@ -8,16 +7,14 @@ import { adminApi } from '../services/adminApiService';
 import { ADMIN_CONFIG } from '../config/adminConfig';
 import { buildApiUrl } from '../config';
 
-const tripThemes = ['Adventure', 'Honeymoon', 'Family', 'Beach', 'Pilgrimage', 'Weekend'];
-const hotelCategories = ['2-star', '3-star', '4-star', '5-star'];
-const mealPlans = ['Breakfast Only', 'MAP', 'AP', 'CP'];
 const transportModes = ['Car', 'Bus', 'Train', 'Flight'];
 const inclusionsList = ['Hotel Stay', 'Meals', 'Sightseeing', 'Guide'];
 const exclusionsList = ['Flights', 'Personal Expenses', 'Tips', 'Insurance'];
 const discountsList = ['Early Bird', 'Group Discount', 'Student Discount', 'Senior Citizen', 'Family Package', 'Weekend Special'];
+const holidayThemes = ['Adventure', 'Honeymoon', 'Family', 'Beach', 'Pilgrimage', 'Weekend'];
+const curatedCategories = ['Road Trips', 'Bikers Group', '4 X 4', 'Adventure Trip', 'Weekend'];
 
 function AdminLanding() {
-  const navigate = useNavigate();
   const { isAdminLoggedIn, isInitialized, adminToken } = useAdminAuth();
   const [showLoginModal, setShowLoginModal] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -37,19 +34,12 @@ function AdminLanding() {
     date: '',
     citiesCovered: [],
     itinerary: [{ day: 1, title: '', desc: '' }],
-    hotels: '',
-    hotelCategory: '',
-    mealPlan: '',
     transport: [],
     pickup: '',
-    drop: '',
     inclusions: [],
     exclusions: [],
     cover: null,
     gallery: [],
-    pdf: null,
-    // New fields
-    curatedJourneyType: '',
     trending: false,
     deals: false,
     hiddenGem: false,
@@ -57,11 +47,16 @@ function AdminLanding() {
     startDate: '',
     endDate: '',
     maxGroupSize: '',
+    minimumAge: '18',
+    languageSupport: 'English',
     discounts: [],
     bookingDeadline: '',
+    cancellationPolicy: 'Standard cancellation policy applies',
+    partialPayment: false,
+    emiAvailable: false,
     // Theme and TripType fields
-    theme: 'adventure',
-    tripType: 'Adventure',
+    theme: 'Adventure',
+    curatedCategory: '',
   };
   const [form, setForm] = useState(initialForm);
   const [step, setStep] = useState(0);
@@ -142,8 +137,8 @@ function AdminLanding() {
 
   // Validate form before submission
   const validateForm = () => {
-    if (!form.title || !form.description || !form.city || !form.state || !form.budget) {
-      alert('Please fill in all required fields: Title, Description, City, State, and Budget');
+    if (!form.title || !form.description || !form.city || !form.state || !form.budget || !form.pickup || !form.maxGroupSize) {
+      alert('Please fill in all required fields: Title, Description, City, State, Budget, Departure Location, and Max Group Size');
       return false;
     }
     // Date validation only if not a weekend trip
@@ -153,6 +148,14 @@ function AdminLanding() {
     }
     if (form.itinerary.length === 0 || form.itinerary.some(item => !item.title)) {
       alert('Please add at least one itinerary day with title');
+      return false;
+    }
+    if (!form.languageSupport.split(',').map(item => item.trim()).filter(Boolean).length) {
+      alert('Please add at least one supported language');
+      return false;
+    }
+    if (!form.cover) {
+      alert('Please upload a cover image');
       return false;
     }
     // Validate gallery images - at least 3 required
@@ -225,7 +228,8 @@ function AdminLanding() {
       }
       
       formDataToSend.append('price', formData.price);
-      formDataToSend.append('tripType', formData.tripType);
+      formDataToSend.append('tripType', formData.theme);
+      formDataToSend.append('curatedCategory', formData.curatedCategory || 'Other');
       formDataToSend.append('itinerary', JSON.stringify(formData.itinerary || []));
       
       // Optional fields - only add if provided
@@ -246,11 +250,16 @@ function AdminLanding() {
       if (formData.cancellationPolicy) {
         formDataToSend.append('cancellationPolicy', formData.cancellationPolicy);
       }
-      
-      // Add new fields
-      if (formData.curatedJourneyType) {
-        formDataToSend.append('curatedJourneyType', formData.curatedJourneyType);
-      }
+
+      formDataToSend.append('paymentOptions', JSON.stringify(formData.paymentOptions || {
+        partialPayment: false,
+        emiAvailable: false
+      }));
+      formDataToSend.append('homepageSections', JSON.stringify(formData.homepageSections || {
+        trending: false,
+        deals: false,
+        hiddenGem: false
+      }));
       
       // Add cover image file if exists
       if (form.cover) {
@@ -292,55 +301,6 @@ function AdminLanding() {
       const result = await response.json();
       
       if (result.success) {
-        const tripId = result.data?._id || result.data?.id;
-        
-        // Post to trending/deals/hidden-gems endpoints if selected
-        const additionalPosts = [];
-        
-        if (form.trending && tripId) {
-          additionalPosts.push(
-            fetch(buildApiUrl('/api/trendingTripsRoutes/post-trending'), {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${adminToken}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ tripId })
-            })
-          );
-        }
-        
-        if (form.deals && tripId) {
-          additionalPosts.push(
-            fetch(buildApiUrl('/api/trendingTripsRoutes/post-deals'), {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${adminToken}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ tripId })
-            })
-          );
-        }
-        
-        if (form.hiddenGem && tripId) {
-          additionalPosts.push(
-            fetch(buildApiUrl('/api/trendingTripsRoutes/post-hidden-gems'), {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${adminToken}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ tripId })
-            })
-          );
-        }
-        
-        // Wait for all additional posts to complete
-        if (additionalPosts.length > 0) {
-          await Promise.all(additionalPosts);
-        }
-        
         setSuccessMessage('Trip created successfully! Redirecting to packages...');
         // Refresh trips list to show the new trip
         fetchAllTrips();
@@ -571,17 +531,24 @@ function AdminLanding() {
             desc: parts.slice(1).join(' - ') || ''
           };
         }) : [{ day: 1, title: '', desc: '' }],
-        hotels: '',
-        hotelCategory: '',
-        mealPlan: '',
         transport: detailedTrip.travelMode ? [detailedTrip.travelMode] : [],
         pickup: detailedTrip.departureLocation || '',
-        drop: detailedTrip.departureLocation || '',
         inclusions: detailedTrip.inclusions?.included || [],
         exclusions: detailedTrip.inclusions?.notIncluded || [],
         cover: null,
         gallery: detailedTrip.gallery || [],
-        pdf: null,
+        maxGroupSize: detailedTrip.maxGroupSize?.toString() || '',
+        minimumAge: detailedTrip.minimumAge?.toString() || '18',
+        languageSupport: detailedTrip.languageSupport?.join(', ') || 'English',
+        discounts: detailedTrip.discounts || [],
+        cancellationPolicy: detailedTrip.cancellationPolicy || 'Standard cancellation policy applies',
+        partialPayment: Boolean(detailedTrip.paymentOptions?.partialPayment),
+        emiAvailable: Boolean(detailedTrip.paymentOptions?.emiAvailable),
+        theme: detailedTrip.theme || detailedTrip.tripType || 'Adventure',
+        curatedCategory: detailedTrip.curatedCategory === 'Other' ? '' : (detailedTrip.curatedCategory || ''),
+        trending: Boolean(detailedTrip.homepageSections?.trending),
+        deals: Boolean(detailedTrip.homepageSections?.deals),
+        hiddenGem: Boolean(detailedTrip.homepageSections?.hiddenGem),
       });
     } else {
       // Fallback to basic trip data if API fails
@@ -605,17 +572,24 @@ function AdminLanding() {
             desc: parts.slice(1).join(' - ') || ''
           };
         }) : [{ day: 1, title: '', desc: '' }],
-        hotels: '',
-        hotelCategory: '',
-        mealPlan: '',
         transport: trip.travelMode ? [trip.travelMode] : [],
         pickup: trip.departureLocation || '',
-        drop: trip.departureLocation || '',
         inclusions: trip.inclusions?.included || [],
         exclusions: trip.inclusions?.notIncluded || [],
         cover: null,
         gallery: trip.gallery || [],
-        pdf: null,
+        maxGroupSize: trip.maxGroupSize?.toString() || '',
+        minimumAge: trip.minimumAge?.toString() || '18',
+        languageSupport: trip.languageSupport?.join(', ') || 'English',
+        discounts: trip.discounts || [],
+        cancellationPolicy: trip.cancellationPolicy || 'Standard cancellation policy applies',
+        partialPayment: Boolean(trip.paymentOptions?.partialPayment),
+        emiAvailable: Boolean(trip.paymentOptions?.emiAvailable),
+        theme: trip.theme || trip.tripType || 'Adventure',
+        curatedCategory: trip.curatedCategory === 'Other' ? '' : (trip.curatedCategory || ''),
+        trending: Boolean(trip.homepageSections?.trending),
+        deals: Boolean(trip.homepageSections?.deals),
+        hiddenGem: Boolean(trip.homepageSections?.hiddenGem),
       });
     }
   };
@@ -712,22 +686,25 @@ function AdminLanding() {
             </div>
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="block font-medium text-gray-700 mb-1">Theme</label>
-                <input 
+                <label className="block font-medium text-gray-700 mb-1">Holiday Theme</label>
+                <select
                   className="w-full border border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base" 
                   value={form.theme} 
                   onChange={e => setForm(f => ({ ...f, theme: e.target.value }))} 
-                  placeholder="e.g. adventure" 
-                />
+                >
+                  {holidayThemes.map(theme => <option key={theme} value={theme}>{theme}</option>)}
+                </select>
               </div>
               <div className="flex-1">
-                <label className="block font-medium text-gray-700 mb-1">Trip Type</label>
-                <input 
+                <label className="block font-medium text-gray-700 mb-1">Curated Homepage Section</label>
+                <select
                   className="w-full border border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base" 
-                  value={form.tripType} 
-                  onChange={e => setForm(f => ({ ...f, tripType: e.target.value }))} 
-                  placeholder="e.g. Adventure" 
-                />
+                  value={form.curatedCategory} 
+                  onChange={e => setForm(f => ({ ...f, curatedCategory: e.target.value }))} 
+                >
+                  <option value="">Do not show in curated section</option>
+                  {curatedCategories.map(category => <option key={category} value={category}>{category}</option>)}
+                </select>
               </div>
             </div>
             <div className="flex gap-4">
@@ -785,41 +762,24 @@ function AdminLanding() {
               )}
             </div>
             <div>
-              <label className="block font-medium text-gray-700 mb-1">Type of Curated Journey</label>
-              <select className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.curatedJourneyType} onChange={e => setForm(f => ({ ...f, curatedJourneyType: e.target.value }))}>
-                <option value="">Select Journey Type</option>
-                <option value="luxury">Biker</option>
-                <option value="budget">fourbyfour</option>
-                <option value="premium">Road trip</option>
-                <option value="adventure">Adventure</option>
-                
-              </select>
-            </div>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label className="block font-medium text-gray-700 mb-1">Trending</label>
-                <select className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.trending} onChange={e => setForm(f => ({ ...f, trending: e.target.value === 'true' }))}>
-                  <option value="">Select</option>
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
+              <label className="block font-medium text-gray-700 mb-2">Homepage Visibility</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  ['trending', 'Top Trending'],
+                  ['deals', 'Deals'],
+                  ['hiddenGem', 'Hidden Gems'],
+                ].map(([field, label]) => (
+                  <label key={field} className={`border rounded-lg px-4 py-3 cursor-pointer transition ${form[field] ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-700'}`}>
+                    <input
+                      type="checkbox"
+                      checked={form[field]}
+                      onChange={e => setForm(f => ({ ...f, [field]: e.target.checked }))}
+                      className="mr-2"
+                    />
+                    {label}
+                  </label>
+                ))}
               </div>
-              <div className="flex-1">
-                <label className="block font-medium text-gray-700 mb-1">Hidden Gem</label>
-                <select className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.hiddenGem} onChange={e => setForm(f => ({ ...f, hiddenGem: e.target.value === 'true' }))}>
-                  <option value="">Select</option>
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Deals</label>
-              <select className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.deals} onChange={e => setForm(f => ({ ...f, deals: e.target.value === 'true' }))}>
-                <option value="">Select</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
             </div>
           </div>
         );
@@ -848,37 +808,6 @@ function AdminLanding() {
       case 2:
         return (
           <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-blue-800">ℹ️ This section is optional. You can skip if not applicable.</p>
-            </div>
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Hotels Provided (Optional)</label>
-              <input className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.hotels} onChange={e => setForm(f => ({ ...f, hotels: e.target.value }))} placeholder="e.g. Hotel Snow View" />
-            </div>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label className="block font-medium text-gray-700 mb-1">Hotel Category (Optional)</label>
-                <select className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.hotelCategory} onChange={e => setForm(f => ({ ...f, hotelCategory: e.target.value }))}>
-                  <option value="">Select</option>
-                  {hotelCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="block font-medium text-gray-700 mb-1">Meal Plan (Optional)</label>
-                <select className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.mealPlan} onChange={e => setForm(f => ({ ...f, mealPlan: e.target.value }))}>
-                  <option value="">Select</option>
-                  {mealPlans.map(mp => <option key={mp} value={mp}>{mp}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-blue-800">ℹ️ This section is optional. You can skip if not applicable.</p>
-            </div>
             <div>
               <label className="block font-medium text-gray-700 mb-1">Mode of Transport (Optional)</label>
               <div className="flex flex-wrap gap-2">
@@ -892,12 +821,12 @@ function AdminLanding() {
             </div>
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="block font-medium text-gray-700 mb-1">Pickup Location (Optional)</label>
+                <label className="block font-medium text-gray-700 mb-1">Departure Location *</label>
                 <input className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.pickup} onChange={e => setForm(f => ({ ...f, pickup: e.target.value }))} placeholder="e.g. Delhi Airport" />
               </div>
               <div className="flex-1">
-                <label className="block font-medium text-gray-700 mb-1">Drop Location (Optional)</label>
-                <input className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.drop} onChange={e => setForm(f => ({ ...f, drop: e.target.value }))} placeholder="e.g. Chandigarh" />
+                <label className="block font-medium text-gray-700 mb-1">Languages *</label>
+                <input className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.languageSupport} onChange={e => setForm(f => ({ ...f, languageSupport: e.target.value }))} placeholder="English, Hindi" />
               </div>
             </div>
             <div>
@@ -930,9 +859,23 @@ function AdminLanding() {
                 ))}
               </div>
             </div>
+            <div>
+              <label className="block font-medium text-gray-700 mb-1">Cancellation Policy</label>
+              <textarea className="w-full border border-gray-300 rounded-xl px-4 py-3" value={form.cancellationPolicy} onChange={e => setForm(f => ({ ...f, cancellationPolicy: e.target.value }))} rows={3} />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <label className="inline-flex items-center gap-2 font-medium text-gray-700">
+                <input type="checkbox" checked={form.partialPayment} onChange={e => setForm(f => ({ ...f, partialPayment: e.target.checked }))} className="form-checkbox" />
+                Partial payment available
+              </label>
+              <label className="inline-flex items-center gap-2 font-medium text-gray-700">
+                <input type="checkbox" checked={form.emiAvailable} onChange={e => setForm(f => ({ ...f, emiAvailable: e.target.checked }))} className="form-checkbox" />
+                EMI available
+              </label>
+            </div>
           </div>
         );
-      case 4:
+      case 3:
         return (
           <div className="space-y-6">
             <div>
@@ -1033,10 +976,6 @@ function AdminLanding() {
                 </div>
               )}
             </div>
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Itinerary PDF (Optional)</label>
-              <input type="file" className="w-full border border-gray-300 rounded-xl px-4 py-3" onChange={e => setForm(f => ({ ...f, pdf: e.target.files[0] }))} />
-            </div>
           </div>
         );
       default:
@@ -1062,29 +1001,24 @@ function AdminLanding() {
         <div className="font-bold text-base sm:text-lg mb-4 sm:mb-6 text-gray-900">Add New Tour Package</div>
         <ol className="space-y-0.5">
           <li className={`flex items-start gap-2 sm:gap-3 py-2 sm:py-3 px-2 rounded-lg transition-all text-xs sm:text-sm ${step === 0 ? 'bg-blue-50 font-bold text-blue-700' : 'text-gray-700'}`}> 
-            <span className="mt-1">🧭</span> 
+            <span className="mt-1 font-semibold">1</span> 
             <span>Basic Information</span> 
             {step === 0 && <div className="text-xs text-blue-600 font-semibold mt-1">Continue &rarr;</div>} 
           </li>
           <li className={`flex items-start gap-2 sm:gap-3 py-2 sm:py-3 px-2 rounded-lg transition-all text-xs sm:text-sm ${step === 1 ? 'bg-blue-50 font-bold text-blue-700' : 'text-gray-700'}`}> 
-            <span className="mt-1">🧳</span> 
+            <span className="mt-1 font-semibold">2</span> 
             <span>Places & Itinerary</span> 
             {step === 1 && <div className="text-xs text-blue-600 font-semibold mt-1">Continue &rarr;</div>} 
           </li>
           <li className={`flex items-start gap-2 sm:gap-3 py-2 sm:py-3 px-2 rounded-lg transition-all text-xs sm:text-sm ${step === 2 ? 'bg-blue-50 font-bold text-blue-700' : 'text-gray-700'}`}> 
-            <span className="mt-1">🏨</span> 
-            <span>Accommodation Details</span> 
+            <span className="mt-1 font-semibold">3</span> 
+            <span>Travel Details</span> 
             {step === 2 && <div className="text-xs text-blue-600 font-semibold mt-1">Continue &rarr;</div>} 
           </li>
           <li className={`flex items-start gap-2 sm:gap-3 py-2 sm:py-3 px-2 rounded-lg transition-all text-xs sm:text-sm ${step === 3 ? 'bg-blue-50 font-bold text-blue-700' : 'text-gray-700'}`}> 
-            <span className="mt-1">🚍</span> 
-            <span>Transport & Inclusions</span> 
-            {step === 3 && <div className="text-xs text-blue-600 font-semibold mt-1">Continue &rarr;</div>} 
-          </li>
-          <li className={`flex items-start gap-2 sm:gap-3 py-2 sm:py-3 px-2 rounded-lg transition-all text-xs sm:text-sm ${step === 4 ? 'bg-blue-50 font-bold text-blue-700' : 'text-gray-700'}`}> 
-            <span className="mt-1">🖼️</span> 
+            <span className="mt-1 font-semibold">4</span> 
             <span>Media Upload</span> 
-            {step === 4 && <div className="text-xs text-blue-600 font-semibold mt-1">Continue &rarr;</div>} 
+            {step === 3 && <div className="text-xs text-blue-600 font-semibold mt-1">Continue &rarr;</div>} 
           </li>
         </ol>
       </div>
@@ -1110,19 +1044,27 @@ function AdminLanding() {
             description: form.description || `Explore ${form.city} with our amazing package`,
             duration: `${form.days} days, ${form.nights} nights`,
             price: parseInt(form.budget) || 0,
-            tripType: form.tripType || 'Adventure',
+            tripType: form.theme || 'Adventure',
+            curatedCategory: form.curatedCategory || 'Other',
             itinerary: form.itinerary.map(item => ({
               day: item.day,
               activities: item.title && item.desc ? `${item.title} - ${item.desc}` : (item.title || '')
             })),
-            theme: form.theme || 'adventure',
+            theme: form.theme || 'Adventure',
             maxGroupSize: parseInt(form.maxGroupSize) || 20,
-            minimumAge: 18,
-            languageSupport: ['English'],
+            minimumAge: parseInt(form.minimumAge) || 0,
+            languageSupport: form.languageSupport.split(',').map(item => item.trim()).filter(Boolean),
             discounts: form.discounts || [],
-            cancellationPolicy: 'Standard cancellation policy applies',
-            // New fields
-            curatedJourneyType: form.curatedJourneyType,
+            cancellationPolicy: form.cancellationPolicy,
+            paymentOptions: {
+              partialPayment: form.partialPayment,
+              emiAvailable: form.emiAvailable
+            },
+            homepageSections: {
+              trending: form.trending,
+              deals: form.deals,
+              hiddenGem: form.hiddenGem
+            },
             trending: form.trending,
             deals: form.deals,
             hiddenGem: form.hiddenGem,
@@ -1159,12 +1101,12 @@ function AdminLanding() {
                 Back
               </button>
             )}
-            {step < 4 && (
+            {step < 3 && (
               <button type="button" className="bg-blue-600 text-white font-bold px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-lg shadow hover:bg-blue-700 transition text-sm sm:text-base" onClick={() => setStep(step + 1)}>
                 Next
               </button>
             )}
-            {step === 4 && (
+            {step === 3 && (
               <button 
                 type="submit" 
                 disabled={isSubmitting}

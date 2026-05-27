@@ -1,24 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useQuery } from '@tanstack/react-query';
 import { useAppSelector } from '../redux/hooks';
 import { useNavigate, useLocation } from 'react-router-dom';
-import config, { buildApiUrl } from '../config';
+import { getTripsByCuratedCategory, getTripsByTheme, tripKeys } from '../api/trips';
 import '../App.css';
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import manaliImg from '../assets/Images/Manali.jpg';
-import kashmirImg from '../assets/Images/kashmir.jpg';
-import keralaImg from '../assets/Images/kerala.jpg';
-import goaImg from '../assets/Images/Goa.jpg';
-import spitiImg from '../assets/Images/spiti.jpg';
-import jaipImg from '../assets/Images/jaip.jpg';
-import kedarkanImg from '../assets/Images/kedarkan.jpg';
-import himacImg from '../assets/Images/himac.jpg';
-import ziroImg from '../assets/Images/ziro.jpg';
-import girImg from '../assets/Images/gir.jpeg';
-import choptaImg from '../assets/Images/chopta.jpg';
-import jawaiImg from '../assets/Images/jawai.jpg';
-import addImg from '../assets/Images/add.jpg';
 import heroVideo from '../assets/Images/pkkp.mp4';
 
 function UserExplore() {
@@ -26,15 +15,24 @@ function UserExplore() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get theme name from navigation state
-  const themeName = location.state?.themeName;
-  
-  // State for trips data
-  const [trips, setTrips] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [tripDetails, setTripDetails] = useState({}); // Store individual trip details with prices
-  const [isLoadingPrices, setIsLoadingPrices] = useState(false); // Loading state for prices
+  // Get filter name from navigation state
+  const themeName = location.state?.themeName || 'all';
+  const curatedCategory = location.state?.curatedCategory || null;
+  const activeTitle = curatedCategory || themeName;
+  const {
+    data: trips = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: curatedCategory
+      ? tripKeys.byCuratedCategory(curatedCategory)
+      : tripKeys.byTheme(themeName),
+    queryFn: () => curatedCategory
+      ? getTripsByCuratedCategory(curatedCategory)
+      : getTripsByTheme(themeName),
+  });
 
   // Console log authentication state and token
   useEffect(() => {
@@ -56,133 +54,19 @@ function UserExplore() {
     }
   }, [isAuthenticated, user]);
 
-  // Fetch individual trip details to get price
-  const fetchTripDetails = async (tripId) => {
-    try {
-      const token = localStorage.getItem('tripNovaAuthToken');
-      
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(buildApiUrl(`/api/trips/get-trip-details/${tripId}`), {
-        method: 'GET',
-        headers: headers,
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        return result.data;
-      } else {
-        console.error('Failed to fetch trip details:', result.message);
-        return null;
-      }
-    } catch (error) {
-      console.error('Error fetching trip details:', error);
-      return null;
-    }
-  };
-
-  // Fetch trips by theme from API
-  const fetchTripsByTheme = async (theme) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Get token from localStorage
-      const token = localStorage.getItem('tripNovaAuthToken');
-      
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      
-      // Add Authorization header if token exists
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      // Use the new API endpoint with theme parameter
-      const response = await fetch(buildApiUrl(`/api/user/filter/get-trips-by-theme/${encodeURIComponent(theme)}`), {
-        method: 'GET',
-        headers: headers,
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log(`Trips fetched successfully for theme "${theme}":`, result.data);
-        const tripsData = result.data || [];
-        setTrips(tripsData);
-        
-        // Fetch details for each trip to get prices
-        setIsLoadingPrices(true);
-        try {
-          const tripDetailsPromises = tripsData.map(async (trip) => {
-            const details = await fetchTripDetails(trip._id);
-            return { tripId: trip._id, details };
-          });
-          
-          const tripDetailsResults = await Promise.all(tripDetailsPromises);
-          
-          // Create a map of trip details
-          const detailsMap = {};
-          tripDetailsResults.forEach(({ tripId, details }) => {
-            if (details) {
-              detailsMap[tripId] = details;
-            }
-          });
-          
-          setTripDetails(detailsMap);
-        } catch (error) {
-          console.error('Error fetching trip details:', error);
-        } finally {
-          setIsLoadingPrices(false);
-        }
-      } else {
-        console.error('Failed to fetch trips:', result.message);
-        setError(result.message || 'Failed to fetch trips');
-      }
-    } catch (error) {
-      console.error('Error fetching trips:', error);
-      setError('Network error. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fetch trips on component mount
-  useEffect(() => {
-    if (themeName) {
-      fetchTripsByTheme(themeName);
-    } else {
-      // Fallback to all trips if no theme is specified
-      fetchTripsByTheme('all');
-    }
-  }, [themeName]);
-
-
-
   const handleCardClick = (trip) => {
-    // Navigate to trip details page with trip data
     navigate('/userdetailbooking', { state: { trip } });
   };
 
   return (
     <div className="min-h-screen bg-white">
       <Helmet>
-        <title>{`${themeName || 'Explore Trips'} | Trippnova`}</title>
+        <title>{`${activeTitle || 'Explore Trips'} | Trippnova`}</title>
         <meta name="description" content="Browse curated trips by theme on Trippnova. Compare packages, explore destinations, and find adventures tailored to your preferences." />
         <link rel="canonical" href={`https://trippnova.com/userexplore`} />
       </Helmet>
       {/* Header Component */}
       <Header 
-        onLoginClick={() => {}} // Empty function since UserExplore doesn't have login modals
-        onSignupClick={() => {}} // Empty function since UserExplore doesn't have signup modals
         onLogoClick={() => navigate('/')}
       />
 
@@ -197,7 +81,7 @@ function UserExplore() {
           {/* Text Content */}
           <div className="text-white p-6 rounded-lg max-w-md z-10">
             <div className="text-sm uppercase tracking-wide mb-2 text-yellow-400">TRIPPNOVA COLLECTIONS</div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">{themeName || 'All Trips'}</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-3">{activeTitle === 'all' ? 'All Trips' : activeTitle}</h1>
            
             <div className="text-lg font-semibold">{trips.length} Trips Available</div>
           </div>
@@ -229,11 +113,11 @@ function UserExplore() {
             <div className="text-lg text-gray-600 mb-4">Loading trips...</div>
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           </div>
-        ) : error ? (
+        ) : isError ? (
           <div className="text-center py-12">
-            <div className="text-lg text-red-600 mb-4">Error: {error}</div>
+            <div className="text-lg text-red-600 mb-4">Error: {error?.message || 'Failed to fetch trips'}</div>
             <button 
-              onClick={() => fetchTripsByTheme(themeName || 'all')}
+              onClick={() => refetch()}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Try Again
@@ -243,7 +127,7 @@ function UserExplore() {
           <div className="text-center py-12">
             <div className="text-lg text-gray-600 mb-4">No trips available at the moment</div>
             <button 
-              onClick={() => fetchTripsByTheme(themeName || 'all')}
+              onClick={() => refetch()}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Refresh
@@ -264,7 +148,7 @@ function UserExplore() {
                     className="w-full h-48 object-cover"
                   />
                   <div className="absolute top-2 left-2 bg-white text-gray-800 px-2 py-1 rounded text-xs font-medium">
-                    {trip.tripType || 'TRIP'}
+                    {trip.curatedCategory && trip.curatedCategory !== 'Other' ? trip.curatedCategory : (trip.theme || trip.tripType || 'TRIP')}
                   </div>
                  
                 </div>
@@ -274,34 +158,32 @@ function UserExplore() {
                   <div className="flex justify-between items-center">
                     <div className="text-left">
                       <span className="text-sm text-gray-600">
-                        {isLoadingPrices ? (
-                          <div className="animate-pulse bg-gray-300 h-4 w-24 rounded"></div>
-                        ) : tripDetails[trip._id]?.price ? 
-                          `Package starts @ ₹${tripDetails[trip._id].price.toLocaleString()}` : 
+                        {trip.price ? 
+                          `Package starts @ ₹${trip.price.toLocaleString()}` : 
                           'Price on request'
                         }
                       </span>
                     </div>
                     <span className="text-sm text-gray-500">{trip.duration}</span>
                   </div>
-                  {trip.curatedJourneyType && (
+                  {trip.curatedCategory && trip.curatedCategory !== 'Other' && (
                     <div className="mt-2">
                       <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                        {trip.curatedJourneyType}
+                        {trip.curatedCategory}
                       </span>
                     </div>
                   )}
-                  {trip.trending && (
+                  {trip.homepageSections?.trending && (
                     <div className="mt-1">
                       <span className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
-                        🔥 Trending
+                        Trending
                       </span>
                     </div>
                   )}
-                  {trip.hiddenGem && (
+                  {trip.homepageSections?.hiddenGem && (
                     <div className="mt-1">
                       <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                        💎 Hidden Gem
+                        Hidden Gem
                       </span>
                     </div>
                   )}

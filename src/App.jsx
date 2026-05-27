@@ -28,55 +28,55 @@ function App() {
   return (
     <Provider store={store}>
       <HelmetProvider>
-      <AuthInitializer>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<UserHome />} />
-            <Route path="/userexplore" element={<UserExplore />} />
-            <Route path="/userdetailbooking" element={<UserdetailBooking />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/security" element={<Security />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/agency" element={<AgencyHome />} />
-            <Route path="/AgencyRegistration" element={<AgencyRegistration />} />
-            <Route path="/AgencyLandingPage" element={<AgencyLandingPage />} />
-            <Route path="/AgencyPackages" element={<AgencyPackages />} />
-            <Route path="/loginadmin" element={
-              <AdminAuthProvider>
-                <Adminlanding />
-              </AdminAuthProvider>
-            } />
-            <Route path="/adminlanding" element={
-              <AdminAuthProvider>
-                <Adminlanding />
-              </AdminAuthProvider>
-            } />
-            <Route path="/usermanagement" element={
-              <AdminAuthProvider>
-                <UserManagement />
-              </AdminAuthProvider>
-            } />
-            <Route path="/bookingmanagement" element={
-              <AdminAuthProvider>
-                <BookingManagement />
-              </AdminAuthProvider>
-            } />
-            <Route path="/inquiries" element={
-              <AdminAuthProvider>
-                <Inquiries />
-              </AdminAuthProvider>
-            } />
-            <Route path="/blogupload" element={
-              <AdminAuthProvider>
-                <BlogUpload />
-              </AdminAuthProvider>
-            } />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthInitializer>
+        <AuthInitializer>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<UserHome />} />
+              <Route path="/userexplore" element={<UserExplore />} />
+              <Route path="/userdetailbooking" element={<UserdetailBooking />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/security" element={<Security />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/agency" element={<AgencyHome />} />
+              <Route path="/AgencyRegistration" element={<AgencyRegistration />} />
+              <Route path="/AgencyLandingPage" element={<AgencyLandingPage />} />
+              <Route path="/AgencyPackages" element={<AgencyPackages />} />
+              <Route path="/loginadmin" element={
+                <AdminAuthProvider>
+                  <Adminlanding />
+                </AdminAuthProvider>
+              } />
+              <Route path="/adminlanding" element={
+                <AdminAuthProvider>
+                  <Adminlanding />
+                </AdminAuthProvider>
+              } />
+              <Route path="/usermanagement" element={
+                <AdminAuthProvider>
+                  <UserManagement />
+                </AdminAuthProvider>
+              } />
+              <Route path="/bookingmanagement" element={
+                <AdminAuthProvider>
+                  <BookingManagement />
+                </AdminAuthProvider>
+              } />
+              <Route path="/inquiries" element={
+                <AdminAuthProvider>
+                  <Inquiries />
+                </AdminAuthProvider>
+              } />
+              <Route path="/blogupload" element={
+                <AdminAuthProvider>
+                  <BlogUpload />
+                </AdminAuthProvider>
+              } />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthInitializer>
       </HelmetProvider>
     </Provider>
   );

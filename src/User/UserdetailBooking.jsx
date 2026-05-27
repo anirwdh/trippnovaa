@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAppSelector } from '../redux/hooks';
 import { useNavigate, useLocation } from 'react-router-dom';
-import config, { buildApiUrl } from '../config';
+import { bookTrip, getTripDetails, tripKeys } from '../api/trips';
 import addImg from '../assets/Images/add.jpg';
 import manaliImg from '../assets/Images/Manali.jpg';
 import kashmirImg from '../assets/Images/kashmir.jpg';
@@ -15,14 +16,24 @@ function UserdetailBooking() {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // State for trip data
-  const [trip, setTrip] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const tripId = location.state?.trip?._id;
+  const {
+    data: trip,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: tripKeys.detail(tripId),
+    queryFn: () => getTripDetails(tripId),
+    enabled: Boolean(tripId),
+  });
+  const bookingMutation = useMutation({
+    mutationFn: bookTrip,
+  });
   
   const [activeTab, setActiveTab] = useState('overview');
-  const [selectedDate, setSelectedDate] = useState('August, 2025');
+  const [selectedDate, setSelectedDate] = useState('');
   const [travelers, setTravelers] = useState(2);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -66,23 +77,33 @@ function UserdetailBooking() {
   const basePricePerAdult = trip?.price || 16036.10; // Base price per adult from trip data
   const totalPrice = basePricePerAdult * travelers;
 
-  // Get current date and time for display
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    return {
-      date: now.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }),
-      time: now.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      })
-    };
+  const formatTripDate = (date) => {
+    if (!date) return 'Date not selected';
+    return new Date(date).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
+
+  useEffect(() => {
+    if (!trip || selectedDate) return;
+
+    if (trip.availableDates?.length > 0) {
+      setSelectedDate(trip.availableDates[0]);
+      return;
+    }
+
+    if (trip.startDate) {
+      setSelectedDate(trip.startDate);
+      return;
+    }
+
+    if (trip.weekend) {
+      setSelectedDate('Every weekend');
+    }
+  }, [trip, selectedDate]);
 
   // Parse destination to get pickup and drop locations
   const getPickupAndDrop = () => {
@@ -144,33 +165,18 @@ function UserdetailBooking() {
         lastName: bookingForm.lastName,
         email: bookingForm.email,
         mobileNumber: bookingForm.mobileNumber,
-        bookingDate: selectedDate,
+        bookingDate: selectedDate || (trip.weekend ? 'Every weekend' : ''),
         numberOfTravelers: travelers,
         totalPrice: totalPrice
       };
 
-      console.log('Sending booking data:', bookingData);
-      console.log('Request headers:', {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      });
+      const result = await bookingMutation.mutateAsync(bookingData);
+      console.log('Booking API result:', result);
+      if (result?.data?.emailDelivery) {
+        console.log('Booking email delivery:', result.data.emailDelivery);
+      }
 
-      const response = await fetch(buildApiUrl('/api/user/trip/book-trip'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(bookingData)
-      });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      
-      const result = await response.json();
-      console.log('Response data:', result);
-
-      if (response.ok && result.success) {
+      if (result.success) {
         setBookingSuccess(true);
         // Reset form
         setBookingForm({
@@ -185,21 +191,19 @@ function UserdetailBooking() {
           setBookingSuccess(false);
         }, 2000);
       } else {
-        // Handle specific error cases
-        if (response.status === 401) {
-          setBookingError('Session expired. Please login again.');
-          // Clear token and redirect to login
-          localStorage.removeItem('tripNovaAuthToken');
-          localStorage.removeItem('tripNovaAuth');
-        } else if (response.status === 403) {
-          setBookingError('Access denied. Please check your permissions.');
-        } else {
-          setBookingError(result.message || 'Booking failed. Please try again.');
-        }
+        setBookingError(result.message || 'Booking failed. Please try again.');
       }
     } catch (error) {
       console.error('Booking error:', error);
-      setBookingError('Network error. Please check your connection and try again.');
+      if (error.status === 401) {
+        setBookingError('Session expired. Please login again.');
+        localStorage.removeItem('tripNovaAuthToken');
+        localStorage.removeItem('tripNovaAuth');
+      } else if (error.status === 403) {
+        setBookingError('Access denied. Please check your permissions.');
+      } else {
+        setBookingError(error.message || 'Network error. Please check your connection and try again.');
+      }
     } finally {
       setIsBookingSubmitting(false);
     }
@@ -214,52 +218,6 @@ function UserdetailBooking() {
   // Note: Tab functionality removed - all sections now display on scroll
 
 
-
-  // Fetch trip details from API
-  const fetchTripDetails = async (tripId) => {
-    if (!tripId) {
-      setError('No trip ID provided');
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Get token from localStorage
-      const token = localStorage.getItem('tripNovaAuthToken');
-      
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      
-      // Add Authorization header if token exists
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(buildApiUrl(`/api/trips/get-trip-details/${tripId}`), {
-        method: 'GET',
-        headers: headers,
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('Trip details fetched successfully:', result.data);
-        setTrip(result.data);
-      } else {
-        console.error('Failed to fetch trip details:', result.message);
-        setError(result.message || 'Failed to fetch trip details');
-      }
-    } catch (error) {
-      console.error('Error fetching trip details:', error);
-      setError('Network error. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Console log authentication state and token
   useEffect(() => {
@@ -280,20 +238,6 @@ function UserdetailBooking() {
       }
     }
   }, [isAuthenticated, user]);
-
-  // Fetch trip details on component mount
-  useEffect(() => {
-    // Get trip ID from location state or URL params
-    const tripId = location.state?.trip?._id || location.pathname.split('/').pop();
-    console.log('Trip ID:', tripId);
-    
-    if (tripId) {
-      fetchTripDetails(tripId);
-    } else {
-      setError('No trip ID found');
-      setIsLoading(false);
-    }
-  }, [location]);
 
   const handleImageClick = (imageSrc, imageAlt, index = 0) => {
     setSelectedImage({ src: imageSrc, alt: imageAlt });
@@ -334,7 +278,7 @@ function UserdetailBooking() {
   }
 
   // Show error state
-  if (error) {
+  if (!tripId || isError) {
     return (
       <div className="min-h-screen bg-white">
         <Header 
@@ -343,12 +287,10 @@ function UserdetailBooking() {
         />
         <div className="pt-16 sm:pt-20 flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="text-lg text-red-600 mb-4">Error: {error}</div>
+            <div className="text-lg text-red-600 mb-4">Error: {!tripId ? 'No trip ID found' : error?.message || 'Failed to fetch trip details'}</div>
             <button 
-              onClick={() => {
-                const tripId = location.state?.trip?._id || location.pathname.split('/').pop();
-                if (tripId) fetchTripDetails(tripId);
-              }}
+              onClick={() => refetch()}
+              disabled={!tripId}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Try Again
@@ -1215,18 +1157,30 @@ function UserdetailBooking() {
                   
                   <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Date:</span>
-                      <span className="font-medium">{getCurrentDateTime().date}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Time:</span>
-                      <span className="font-medium">{getCurrentDateTime().time}</span>
+                      <span className="text-gray-600">Trip Date:</span>
+                      <span className="font-medium text-right">{selectedDate === 'Every weekend' ? selectedDate : formatTripDate(selectedDate)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Travellers:</span>
                       <span className="font-medium">{travelers} Adults</span>
                     </div>
                   </div>
+                  {trip?.availableDates && trip.availableDates.length > 0 && (
+                    <div className="mt-3">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Choose travel date</label>
+                      <select
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {trip.availableDates.map((date, index) => (
+                          <option key={index} value={date}>
+                            {formatTripDate(date)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-2 mt-2 sm:mt-3 p-2 bg-green-50 rounded">
                     <svg className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

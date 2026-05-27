@@ -4,7 +4,7 @@ const config = {
   // API Configuration
   // In Vite, use import.meta.env instead of process.env
   // Environment variables must be prefixed with VITE_ to be exposed to the client
-  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://trippnova-backend.onrender.com', 
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001', 
   
   // API Endpoints
   API_ENDPOINTS: {

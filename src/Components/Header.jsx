@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
 import { logout } from '../redux/slices/authSlice';
-import config, { buildApiUrl } from '../config';
+import { searchTrips as searchTripsApi } from '../api/trips';
 import logoImg from '../assets/Images/lhlh.png';
+import Login from './Login';
+import CreateNew from './CreateNew';
 
 function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection = false, onLogoClick }) {
   const dispatch = useAppDispatch();
@@ -11,19 +13,16 @@ function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection 
   // Debug logging
   console.log('Header: Auth state:', { isAuthenticated, user, isLoading });
 
-  // Get token for debugging
-  const token = localStorage.getItem('tripNovaAuthToken');
-  const tokenPreview = token ? `${token.substring(0, 20)}...` : 'No token';
-  
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [showFallbackLoginModal, setShowFallbackLoginModal] = useState(false);
+  const [showFallbackSignupModal, setShowFallbackSignupModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
 
   const userDropdownRef = useRef(null);
   const calendarRef = useRef(null);
@@ -35,8 +34,24 @@ function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection 
     setMobileMenuOpen(false);
   };
 
+  const openLogin = () => {
+    if (onLoginClick) {
+      onLoginClick();
+    } else {
+      setShowFallbackLoginModal(true);
+    }
+  };
+
+  const openSignup = () => {
+    if (onSignupClick) {
+      onSignupClick();
+    } else {
+      setShowFallbackSignupModal(true);
+    }
+  };
+
   // Filter API function
-  const searchTrips = async (destination) => {
+  const handleDestinationSearch = async (destination) => {
     if (!destination || destination.trim() === '') {
       console.log('No destination provided for search');
       return;
@@ -46,45 +61,16 @@ function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection 
     try {
       console.log('Searching for trips with destination:', destination);
       
-      const token = localStorage.getItem('tripNovaAuthToken');
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(buildApiUrl(`/api/user/filter/filter-trips?destination=${encodeURIComponent(destination)}`), {
-        method: 'GET',
-        headers: headers,
-      });
-
-      const result = await response.json();
-      console.log('Search API response:', result);
-      
-      if (result.success) {
-        console.log('Search results:', result.data);
-        setSearchResults(result.data || []);
-        // Pass search results to parent component
-        if (onSearchResults) {
-          onSearchResults(result.data || [], destination);
-        }
-        if (result.data && result.data.length > 0) {
-          console.log('Found trips, passing to parent component');
-        } else {
-          console.log('No trips found for destination:', destination);
-        }
-      } else {
-        console.error('Search failed:', result.message);
-        setSearchResults([]);
-        if (onSearchResults) {
-          onSearchResults([], destination);
-        }
+      const trips = await searchTripsApi(destination);
+      console.log('Search results:', trips);
+      if (onSearchResults) {
+        onSearchResults(trips, destination);
       }
     } catch (error) {
       console.error('Error searching trips:', error);
-      setSearchResults([]);
+      if (onSearchResults) {
+        onSearchResults([], destination);
+      }
     } finally {
       setIsSearching(false);
     }
@@ -94,7 +80,7 @@ function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection 
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      searchTrips(searchQuery.trim());
+      handleDestinationSearch(searchQuery.trim());
     }
   };
 
@@ -119,6 +105,7 @@ function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection 
   }, [userDropdownOpen, calendarOpen]);
 
   return (
+    <>
     <header className={`fixed top-0 left-0 right-0 z-[1002] flex items-center justify-between px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 py-2 xs:py-3 transition-all duration-300 ${
       isInHeroSection 
         ? 'bg-transparent backdrop-blur-none shadow-none' 
@@ -304,7 +291,7 @@ function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection 
                   ? 'text-white hover:text-yellow-300' 
                   : 'text-gray-700 hover:text-pink-600'
               }`}
-              onClick={onLoginClick || (() => {})}
+              onClick={openLogin}
             >
               Log in
             </button>
@@ -314,7 +301,7 @@ function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection 
                   ? 'text-white hover:text-yellow-300' 
                   : 'text-gray-700 hover:text-pink-600'
               }`}
-              onClick={onSignupClick || (() => {})}
+              onClick={openSignup}
             >
               Sign up
             </button>
@@ -484,7 +471,7 @@ function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection 
                       className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                       onClick={() => {
                         setMobileMenuOpen(false);
-                        if (onLoginClick) onLoginClick();
+                        openLogin();
                       }}
                     >
                       <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -498,7 +485,7 @@ function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection 
                       className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                       onClick={() => {
                         setMobileMenuOpen(false);
-                        if (onSignupClick) onSignupClick();
+                        openSignup();
                       }}
                     >
                       <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -521,6 +508,21 @@ function Header({ onLoginClick, onSignupClick, onSearchResults, isInHeroSection 
         </div>
       )}
     </header>
+    {(!onLoginClick || !onSignupClick) && (
+      <>
+        <Login
+          isOpen={showFallbackLoginModal}
+          onClose={() => setShowFallbackLoginModal(false)}
+          onOpenSignup={() => setShowFallbackSignupModal(true)}
+        />
+        <CreateNew
+          isOpen={showFallbackSignupModal}
+          onClose={() => setShowFallbackSignupModal(false)}
+          onOpenLogin={() => setShowFallbackLoginModal(true)}
+        />
+      </>
+    )}
+    </>
   );
 }
 
