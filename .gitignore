@@ -46,3 +46,15 @@ ios/build/
 *.swp            # vi swap files
 *.sublime-workspace
 *.sublime-project
+
+# macOS DS_Store (all directories)
+**/.DS_Store
+
+# Large media files - use CDN/cloud storage instead
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.HEIC
+*.heic
