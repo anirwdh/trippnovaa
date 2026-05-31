@@ -51,8 +51,8 @@ ios/build/
 **/.DS_Store
 
 # Large media files - use CDN/cloud storage instead
-*.mp4
-*.mov
+
+
 *.avi
 *.mkv
 *.webm
